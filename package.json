@@ -1,0 +1,17 @@
+{
+  "name": "@ghostery/scriptlets",
+  "version": "1.0.0",
+  "description": "Scriptlets for Ghostery Tracker & Ad Blocker",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "deno build.ts --tagName 1.61.3b6 > ubo.js",
+    "test": "node --test"
+  },
+  "author": {
+    "name": "Ghostery GmbH",
+    "email": "info@ghostery.com",
+    "url": "https://www.ghostery.com"
+  },
+  "license": "GPL-3.0"
+}
