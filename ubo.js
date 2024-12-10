@@ -24,6 +24,9 @@ const scriptlets = {};
 
 
 scriptlets['set-attr.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function runAt(fn, when) {
@@ -333,13 +336,13 @@ function setAttr(
 };
 setAttr(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['trusted-set-attr.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function runAt(fn, when) {
@@ -637,13 +640,13 @@ function trustedSetAttr(
 };
 trustedSetAttr(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: true,
 };
 
 
 scriptlets['remove-attr.js'] = {
+aliases: ["ra.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -934,13 +937,13 @@ function removeAttr(
 };
 removeAttr(...args);
 },
-aliases: ["ra.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['set-constant.js'] = {
+aliases: ["set.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function validateConstantFn(trusted, raw, extraArgs = {}) {
@@ -1365,13 +1368,13 @@ function setConstant(
 };
 setConstant(...args);
 },
-aliases: ["set.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['trusted-set-constant.js'] = {
+aliases: ["trusted-set.js"],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function validateConstantFn(trusted, raw, extraArgs = {}) {
@@ -1796,13 +1799,13 @@ function trustedSetConstant(
 };
 trustedSetConstant(...args);
 },
-aliases: ["trusted-set.js"],
-
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-replace-argument.js'] = {
+aliases: [],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function validateConstantFn(trusted, raw, extraArgs = {}) {
@@ -2295,13 +2298,13 @@ function trustedReplaceArgument(
 };
 trustedReplaceArgument(...args);
 },
-aliases: [],
-
-requiresTrust: true,
 };
 
 
 scriptlets['spoof-css.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -2610,13 +2613,13 @@ function spoofCSS(
 };
 spoofCSS(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['prevent-setTimeout.js'] = {
+aliases: ["no-setTimeout-if.js","nostif.js","setTimeout-defuser.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -2944,13 +2947,13 @@ function preventSetTimeout(
 };
 preventSetTimeout(...args);
 },
-aliases: ["no-setTimeout-if.js","nostif.js","setTimeout-defuser.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['prevent-setInterval.js'] = {
+aliases: ["no-setInterval-if.js","nosiif.js","setInterval-defuser.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -3278,13 +3281,13 @@ function preventSetInterval(
 };
 preventSetInterval(...args);
 },
-aliases: ["no-setInterval-if.js","nosiif.js","setInterval-defuser.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['prevent-requestAnimationFrame.js'] = {
+aliases: ["no-requestAnimationFrame-if.js","norafif.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -3577,13 +3580,13 @@ function preventRequestAnimationFrame(
 };
 preventRequestAnimationFrame(...args);
 },
-aliases: ["no-requestAnimationFrame-if.js","norafif.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['set-cookie.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function getCookieFn(
@@ -3895,13 +3898,13 @@ function setCookie(
 };
 setCookie(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['set-cookie-reload.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function getCookieFn(
@@ -4216,13 +4219,13 @@ function setCookieReload(name, value, path, ...args) {
 };
 setCookieReload(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['trusted-set-cookie.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function getCookieFn(
@@ -4530,13 +4533,13 @@ function trustedSetCookie(
 };
 trustedSetCookie(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-set-cookie-reload.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function getCookieFn(
@@ -4847,13 +4850,13 @@ function trustedSetCookieReload(name, value, offsetExpiresSec, path, ...args) {
 };
 trustedSetCookieReload(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: true,
 };
 
 
 scriptlets['remove-cookie.js'] = {
+aliases: ["cookie-remover.js"],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -5106,13 +5109,13 @@ function removeCookie(
 };
 removeCookie(...args);
 },
-aliases: ["cookie-remover.js"],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['set-local-storage-item.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -5391,13 +5394,13 @@ function setLocalStorageItem(key = '', value = '') {
 };
 setLocalStorageItem(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['set-session-storage-item.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -5676,13 +5679,13 @@ function setSessionStorageItem(key = '', value = '') {
 };
 setSessionStorageItem(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['trusted-set-local-storage-item.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -5961,13 +5964,13 @@ function trustedSetLocalStorageItem(key = '', value = '') {
 };
 trustedSetLocalStorageItem(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-set-session-storage-item.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -6246,13 +6249,13 @@ function trustedSetSessionStorageItem(key = '', value = '') {
 };
 trustedSetSessionStorageItem(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: true,
 };
 
 
 scriptlets['abort-current-script.js'] = {
+aliases: ["acs.js","abort-current-inline-script.js","acis.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function runAtHtmlElementFn(fn) {
@@ -6585,13 +6588,13 @@ function abortCurrentScript(...args) {
 };
 abortCurrentScript(...args);
 },
-aliases: ["acs.js","abort-current-inline-script.js","acis.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['abort-on-property-read.js'] = {
+aliases: ["aopr.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -6845,13 +6848,13 @@ function abortOnPropertyRead(
 };
 abortOnPropertyRead(...args);
 },
-aliases: ["aopr.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['abort-on-property-write.js'] = {
+aliases: ["aopw.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -7083,13 +7086,13 @@ function abortOnPropertyWrite(
 };
 abortOnPropertyWrite(...args);
 },
-aliases: ["aopw.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['abort-on-stack-trace.js'] = {
+aliases: ["aost.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function matchesStackTrace(
@@ -7392,13 +7395,13 @@ function abortOnStackTrace(
 };
 abortOnStackTrace(...args);
 },
-aliases: ["aost.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['addEventListener-defuser.js'] = {
+aliases: ["aeld.js","prevent-addEventListener.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function shouldDebug(details) {
@@ -7778,13 +7781,13 @@ function addEventListenerDefuser(
 };
 addEventListenerDefuser(...args);
 },
-aliases: ["aeld.js","prevent-addEventListener.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['json-prune.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function objectFindOwnerFn(
@@ -8171,13 +8174,13 @@ function jsonPrune(
 };
 jsonPrune(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['json-prune-fetch-response.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function parsePropertiesToMatch(propsToMatch, implicit = '') {
@@ -8657,13 +8660,13 @@ function jsonPruneFetchResponse(...args) {
 };
 jsonPruneFetchResponse(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['json-prune-xhr-response.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function parsePropertiesToMatch(propsToMatch, implicit = '') {
@@ -9146,13 +9149,13 @@ function jsonPruneXhrResponse(
 };
 jsonPruneXhrResponse(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['evaldata-prune.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function objectFindOwnerFn(
@@ -9523,13 +9526,13 @@ function evaldataPrune(
 };
 evaldataPrune(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['adjust-setInterval.js'] = {
+aliases: ["nano-setInterval-booster.js","nano-sib.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -9748,13 +9751,13 @@ function adjustSetInterval(
 };
 adjustSetInterval(...args);
 },
-aliases: ["nano-setInterval-booster.js","nano-sib.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['adjust-setTimeout.js'] = {
+aliases: ["nano-setTimeout-booster.js","nano-stb.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -9973,13 +9976,13 @@ function adjustSetTimeout(
 };
 adjustSetTimeout(...args);
 },
-aliases: ["nano-setTimeout-booster.js","nano-stb.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['noeval-if.js'] = {
+aliases: ["prevent-eval-if.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -10192,13 +10195,13 @@ function noEvalIf(
 };
 noEvalIf(...args);
 },
-aliases: ["prevent-eval-if.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['prevent-fetch.js'] = {
+aliases: ["no-fetch-if.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function proxyApplyFn(
@@ -10625,13 +10628,13 @@ function noFetchIf(
 };
 noFetchIf(...args);
 },
-aliases: ["no-fetch-if.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['prevent-refresh.js'] = {
+aliases: ["refresh-defuser.js"],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -10848,13 +10851,13 @@ function preventRefresh(
 };
 preventRefresh(...args);
 },
-aliases: ["refresh-defuser.js"],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['remove-class.js'] = {
+aliases: ["rc.js"],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -11136,13 +11139,13 @@ function removeClass(
 };
 removeClass(...args);
 },
-aliases: ["rc.js"],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['webrtc-if.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -11392,13 +11395,13 @@ function webrtcIf(
 };
 webrtcIf(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['prevent-xhr.js'] = {
+aliases: ["no-xhr-if.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function parsePropertiesToMatch(propsToMatch, implicit = '') {
@@ -11872,13 +11875,13 @@ function preventXhr(...args) {
 };
 preventXhr(...args);
 },
-aliases: ["no-xhr-if.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['prevent-window-open.js'] = {
+aliases: ["nowoif.js","no-window-open-if.js","window.open-defuser.js"],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -12235,13 +12238,13 @@ function noWindowOpenIf(
 };
 noWindowOpenIf(...args);
 },
-aliases: ["nowoif.js","no-window-open-if.js","window.open-defuser.js"],
-
-requiresTrust: false,
 };
 
 
 scriptlets['close-window.js'] = {
+aliases: ["window-close-if.js"],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -12453,13 +12456,13 @@ function closeWindow(
 };
 closeWindow(...args);
 },
-aliases: ["window-close-if.js"],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['window.name-defuser.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 
@@ -12470,13 +12473,13 @@ function windowNameDefuser() {
 };
 windowNameDefuser(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['overlay-buster.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 
@@ -12532,13 +12535,13 @@ function overlayBuster() {
 };
 overlayBuster(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['alert-buster.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 
@@ -12557,13 +12560,13 @@ function alertBuster() {
 };
 alertBuster(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['nowebrtc.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 
@@ -12600,13 +12603,13 @@ function noWebrtc() {
 };
 noWebrtc(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['disable-newtab-links.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 
@@ -12625,13 +12628,13 @@ function disableNewtabLinks() {
 };
 disableNewtabLinks(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['xml-prune.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -12961,13 +12964,13 @@ function xmlPrune(
 };
 xmlPrune(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['m3u-prune.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -13315,13 +13318,13 @@ function m3uPrune(
 };
 m3uPrune(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['href-sanitizer.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -13655,13 +13658,13 @@ function hrefSanitizer(
 };
 hrefSanitizer(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['call-nothrow.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -13881,13 +13884,13 @@ function callNothrow(
 };
 callNothrow(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['remove-node-text.js'] = {
+aliases: ["rmnt.js"],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function runAt(fn, when) {
@@ -14220,13 +14223,13 @@ function removeNodeText(
 };
 removeNodeText(...args);
 },
-aliases: ["rmnt.js"],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['prevent-canvas.js'] = {
+aliases: [],
+
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -14431,13 +14434,13 @@ function preventCanvas(
 };
 preventCanvas(...args);
 },
-aliases: [],
-
-requiresTrust: false,
 };
 
 
 scriptlets['multiup.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: false,
 func: function (...args) {
 const scriptletGlobals = {};
 
@@ -14458,13 +14461,13 @@ function multiup() {
 };
 multiup(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: false,
 };
 
 
 scriptlets['trusted-replace-node-text.js'] = {
+aliases: ["trusted-rpnt.js","replace-node-text.js","rpnt.js"],
+world: 'ISOLATED',
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function runAt(fn, when) {
@@ -14798,13 +14801,13 @@ function replaceNodeText(
 };
 replaceNodeText(...args);
 },
-aliases: ["trusted-rpnt.js","replace-node-text.js","rpnt.js"],
-world: 'ISOLATED',
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-replace-fetch-response.js'] = {
+aliases: ["trusted-rpfr.js"],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function parsePropertiesToMatch(propsToMatch, implicit = '') {
@@ -15118,13 +15121,13 @@ function trustedReplaceFetchResponse(...args) {
 };
 trustedReplaceFetchResponse(...args);
 },
-aliases: ["trusted-rpfr.js"],
-
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-replace-xhr-response.js'] = {
+aliases: [],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function parsePropertiesToMatch(propsToMatch, implicit = '') {
@@ -15431,13 +15434,13 @@ function trustedReplaceXhrResponse(
 };
 trustedReplaceXhrResponse(...args);
 },
-aliases: [],
-
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-click-element.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function runAtHtmlElementFn(fn) {
@@ -15828,13 +15831,13 @@ function trustedClickElement(
 };
 trustedClickElement(...args);
 },
-aliases: [],
-world: 'ISOLATED',
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-prune-inbound-object.js'] = {
+aliases: [],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -16257,13 +16260,13 @@ function trustedPruneInboundObject(
 };
 trustedPruneInboundObject(...args);
 },
-aliases: [],
-
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-prune-outbound-object.js'] = {
+aliases: [],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function proxyApplyFn(
@@ -16720,13 +16723,13 @@ function trustedPruneOutboundObject(
 };
 trustedPruneOutboundObject(...args);
 },
-aliases: [],
-
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-replace-outbound-text.js'] = {
+aliases: [],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -17039,13 +17042,13 @@ function trustedReplaceOutboundText(
 };
 trustedReplaceOutboundText(...args);
 },
-aliases: [],
-
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-suppress-native-method.js'] = {
+aliases: [],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -17375,13 +17378,13 @@ function trustedSuppressNativeMethod(
 };
 trustedSuppressNativeMethod(...args);
 },
-aliases: [],
-
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-prevent-xhr.js'] = {
+aliases: [],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function parsePropertiesToMatch(propsToMatch, implicit = '') {
@@ -17855,13 +17858,13 @@ function trustedPreventXhr(...args) {
 };
 trustedPreventXhr(...args);
 },
-aliases: [],
-
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-prevent-dom-bypass.js'] = {
+aliases: [],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function safeSelf() {
@@ -18164,13 +18167,13 @@ function trustedPreventDomBypass(
 };
 trustedPreventDomBypass(...args);
 },
-aliases: [],
-
-requiresTrust: true,
 };
 
 
 scriptlets['trusted-override-element-method.js'] = {
+aliases: [],
+
+requiresTrust: true,
 func: function (...args) {
 const scriptletGlobals = {};
 function validateConstantFn(trusted, raw, extraArgs = {}) {
@@ -18524,9 +18527,6 @@ function trustedOverrideElementMethod(
 };
 trustedOverrideElementMethod(...args);
 },
-aliases: [],
-
-requiresTrust: true,
 };
 
 
