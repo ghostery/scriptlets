@@ -61,15 +61,15 @@ ${scriptlets
 
     return `
 scriptlets['${scriptlet.name}'] = {
+aliases: ${JSON.stringify(scriptlet.aliases || [])},
+${scriptlet.world ? `world: '${scriptlet.world}',` : '' }
+requiresTrust: ${scriptlet.requiresTrust || false},
 func: function (...args) {
 const scriptletGlobals = {};
 ${deps.map((dep) => dep.toString()).join('\n')}
 ${scriptlet.fn.toString()};
 ${scriptlet.fn.name}(...args);
 },
-aliases: ${JSON.stringify(scriptlet.aliases || [])},
-${scriptlet.world ? `world: '${scriptlet.world}',` : '' }
-requiresTrust: ${scriptlet.requiresTrust || false},
 };
 `;
   })
