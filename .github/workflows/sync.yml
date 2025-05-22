@@ -2,15 +2,12 @@ name: Sync scriptlets
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 20 * * 1,5'
 
 jobs:
   sync:
     name: Update scriptlets
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.repository_owner == 'ghostery'
     steps:
       - uses: actions/checkout@v4
       - uses: jdx/mise-action@v2
@@ -34,7 +31,7 @@ jobs:
             deno run build
           fi
 
-      - uses: tibdex/github-app-token@v
+      - uses: tibdex/github-app-token@v1
         id: generate-token
         with:
           app_id: ${{ secrets.ADBLOCKERBOT_APP_ID }}
