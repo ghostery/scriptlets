@@ -1,0 +1,57 @@
+name: Sync scriptlets
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 20 * * 1,5'
+
+jobs:
+  sync:
+    name: Update scriptlets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.repository_owner == 'ghostery'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+
+      - name: Sync with upstream
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          UPSTREAM_TAG="$(curl -sL \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            'https://api.github.com/repos/gorhill/ublock/tags' | \
+            jq -r '[.[].name | select(test("^[0-9]"))] | sort_by(.) | last')"
+          if [[ "$UPSTREAM_TAG" == 'null' ]]; then
+            echo "ERROR: Failed to retrieve upstream version!"
+            exit 1
+          fi
+          LOCAL_TAG="$(cat 'package.json' | sed -n -E 's/.*--tagName ([0-9\.a-zA-Z]+).*/\1/p')"
+          if [[ "$UPSTREAM_TAG" != "$LOCAL_TAG" ]]; then
+            cat 'package.json' | sed -E "s/(--tagName )([0-9\.a-zA-Z]+)/\1$UPSTREAM_TAG/" | tee 'package.json'
+            deno run build
+          fi
+
+      - uses: tibdex/github-app-token@v
+        id: generate-token
+        with:
+          app_id: ${{ secrets.ADBLOCKERBOT_APP_ID }}
+          private_key: ${{ secrets.ADBLOCKERBOT_PRIVATE_KEY }}
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          committer: Ghostery Adblocker Bot <ghostery-adblocker-bot@users.noreply.github.com>
+          author: Ghostery Adblocker Bot <ghostery-adblocker-bot@users.noreply.github.com>
+          commit-message: "Update scriptlets"
+          title: "Sync scriptlets with upstream"
+          body: "Automated update of scriptlets."
+          branch: sync-scriptlets
+
+      - name: Check outputs
+        run: |
+          echo "Pull Request Number - ${{ env.PULL_REQUEST_NUMBER }}"
+          echo "Pull Request Number - ${{ steps.cpr.outputs.pr_number }}"
