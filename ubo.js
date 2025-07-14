@@ -19241,7 +19241,7 @@ function preventInnerHTML(
             if ( typeof elem.matches !== 'function' ) { return false; }
             if ( elem.matches(selector) === false ) { return false; }
         }
-        return safe.testPattern(matcher, a);
+        return safe.testPattern(matcher, `${a}`);
     };
     Object.defineProperty(Element.prototype, 'innerHTML', {
         get: function() {
