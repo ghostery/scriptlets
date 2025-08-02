@@ -24912,7 +24912,7 @@ function getExceptionTokenFn() {
     }.bind();
     return token;
 }
-function abortCurrentScriptCore(
+function abortCurrentScriptFn(
     target = '',
     needle = '',
     context = ''
@@ -24947,8 +24947,9 @@ function abortCurrentScriptCore(
     const debug = shouldDebug(extraArgs);
     const exceptionToken = getExceptionTokenFn();
     const scriptTexts = new WeakMap();
+    const textContentGetter = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent').get;
     const getScriptText = elem => {
-        let text = elem.textContent;
+        let text = textContentGetter.call(elem);
         if ( text.trim() !== '' ) { return text; }
         if ( scriptTexts.has(elem) ) { return scriptTexts.get(elem); }
         const [ , mime, content ] =
@@ -25019,7 +25020,7 @@ function abortCurrentScriptCore(
 }
 function abortCurrentScript(...args) {
     runAtHtmlElementFn(( ) => {
-        abortCurrentScriptCore(...args);
+        abortCurrentScriptFn(...args);
     });
 };
 abortCurrentScript(...args);
