@@ -1960,12 +1960,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -1976,8 +1976,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -2002,8 +2003,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -2065,7 +2073,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -2074,7 +2083,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -2352,12 +2361,13 @@ function editOutboundObjectFn(
     }
     proxyApplyFn(propChain, function(context) {
         const obj = context.reflect();
-        if ( jsonp.apply(obj) === 0 ) { return obj; }
+        const objAfter = jsonp.apply(obj);
+        if ( objAfter === undefined ) { return obj; }
         safe.uboLog(logPrefix, 'Edited');
         if ( safe.logLevel > 1 ) {
-            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(obj, null, 2)}`);
+            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(objAfter, null, 2)}`);
         }
-        return obj;
+        return objAfter;
     });
 }
 function editOutboundObject(propChain = '', jsonq = '') {
@@ -2693,12 +2703,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -2709,8 +2719,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -2735,8 +2746,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -2798,7 +2816,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -2807,7 +2826,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -3085,12 +3104,13 @@ function editOutboundObjectFn(
     }
     proxyApplyFn(propChain, function(context) {
         const obj = context.reflect();
-        if ( jsonp.apply(obj) === 0 ) { return obj; }
+        const objAfter = jsonp.apply(obj);
+        if ( objAfter === undefined ) { return obj; }
         safe.uboLog(logPrefix, 'Edited');
         if ( safe.logLevel > 1 ) {
-            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(obj, null, 2)}`);
+            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(objAfter, null, 2)}`);
         }
-        return obj;
+        return objAfter;
     });
 }
 function trustedEditOutboundObject(propChain = '', jsonq = '') {
@@ -3426,12 +3446,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -3442,8 +3462,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -3468,8 +3489,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -3531,7 +3559,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -3540,7 +3569,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -3818,12 +3847,13 @@ function editOutboundObjectFn(
     }
     proxyApplyFn(propChain, function(context) {
         const obj = context.reflect();
-        if ( jsonp.apply(obj) === 0 ) { return obj; }
+        const objAfter = jsonp.apply(obj);
+        if ( objAfter === undefined ) { return obj; }
         safe.uboLog(logPrefix, 'Edited');
         if ( safe.logLevel > 1 ) {
-            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(obj, null, 2)}`);
+            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(objAfter, null, 2)}`);
         }
-        return obj;
+        return objAfter;
     });
 }
 function jsonEdit(jsonq = '') {
@@ -4159,12 +4189,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -4175,8 +4205,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -4201,8 +4232,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -4264,7 +4302,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -4273,7 +4312,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -4551,12 +4590,13 @@ function editOutboundObjectFn(
     }
     proxyApplyFn(propChain, function(context) {
         const obj = context.reflect();
-        if ( jsonp.apply(obj) === 0 ) { return obj; }
+        const objAfter = jsonp.apply(obj);
+        if ( objAfter === undefined ) { return obj; }
         safe.uboLog(logPrefix, 'Edited');
         if ( safe.logLevel > 1 ) {
-            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(obj, null, 2)}`);
+            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(objAfter, null, 2)}`);
         }
-        return obj;
+        return objAfter;
     });
 }
 function trustedJsonEdit(jsonq = '') {
@@ -4892,12 +4932,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -4908,8 +4948,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -4934,8 +4975,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -4997,7 +5045,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -5006,7 +5055,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -5300,12 +5349,13 @@ function editInboundObjectFn(
         } catch {
         }
         if ( typeof clone !== 'object' || clone === null ) { return; }
-        if ( jsonp.apply(clone) === 0 ) { return; }
+        const objAfter = jsonp.apply(clone);
+        if ( objAfter === undefined ) { return; }
         safe.uboLog(logPrefix, 'Edited');
         if ( safe.logLevel > 1 ) {
-            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(clone, null, 2)}`);
+            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(objAfter, null, 2)}`);
         }
-        return clone;
+        return objAfter;
     };
     proxyApplyFn(propChain, function(context) {
         const i = getArgPos(context.args);
@@ -5651,12 +5701,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -5667,8 +5717,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -5693,8 +5744,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -5756,7 +5814,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -5765,7 +5824,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -6059,12 +6118,13 @@ function editInboundObjectFn(
         } catch {
         }
         if ( typeof clone !== 'object' || clone === null ) { return; }
-        if ( jsonp.apply(clone) === 0 ) { return; }
+        const objAfter = jsonp.apply(clone);
+        if ( objAfter === undefined ) { return; }
         safe.uboLog(logPrefix, 'Edited');
         if ( safe.logLevel > 1 ) {
-            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(clone, null, 2)}`);
+            safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(objAfter, null, 2)}`);
         }
-        return clone;
+        return objAfter;
     };
     proxyApplyFn(propChain, function(context) {
         const i = getArgPos(context.args);
@@ -6369,12 +6429,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -6385,8 +6445,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -6411,8 +6472,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -6474,7 +6542,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -6483,7 +6552,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -6789,13 +6858,17 @@ function jsonEditXhrResponseFn(trusted, jsonq = '') {
             } else if ( typeof innerResponse === 'string' ) {
                 try { obj = safe.JSON_parse(innerResponse); } catch { }
             }
-            if ( typeof obj !== 'object' || obj === null || jsonp.apply(obj) === 0 ) {
+            if ( typeof obj !== 'object' || obj === null ) {
+                return (xhrDetails.response = innerResponse);
+            }
+            const objAfter = jsonp.apply(obj);
+            if ( objAfter === undefined ) {
                 return (xhrDetails.response = innerResponse);
             }
             safe.uboLog(logPrefix, 'Edited');
             const outerResponse = typeof innerResponse === 'string'
-                ? JSONPath.toJSON(obj, safe.JSON_stringify)
-                : obj;
+                ? JSONPath.toJSON(objAfter, safe.JSON_stringify)
+                : objAfter;
             return (xhrDetails.response = outerResponse);
         }
         get responseText() {
@@ -7098,12 +7171,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -7114,8 +7187,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -7140,8 +7214,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -7203,7 +7284,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -7212,7 +7294,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -7518,13 +7600,17 @@ function jsonEditXhrResponseFn(trusted, jsonq = '') {
             } else if ( typeof innerResponse === 'string' ) {
                 try { obj = safe.JSON_parse(innerResponse); } catch { }
             }
-            if ( typeof obj !== 'object' || obj === null || jsonp.apply(obj) === 0 ) {
+            if ( typeof obj !== 'object' || obj === null ) {
+                return (xhrDetails.response = innerResponse);
+            }
+            const objAfter = jsonp.apply(obj);
+            if ( objAfter === undefined ) {
                 return (xhrDetails.response = innerResponse);
             }
             safe.uboLog(logPrefix, 'Edited');
             const outerResponse = typeof innerResponse === 'string'
-                ? JSONPath.toJSON(obj, safe.JSON_stringify)
-                : obj;
+                ? JSONPath.toJSON(objAfter, safe.JSON_stringify)
+                : objAfter;
             return (xhrDetails.response = outerResponse);
         }
         get responseText() {
@@ -7827,12 +7913,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -7843,8 +7929,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -7869,8 +7956,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -7932,7 +8026,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -7941,7 +8036,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -8240,9 +8335,9 @@ function jsonEditXhrRequestFn(trusted, jsonq = '') {
             try { data = safe.JSON_parse(body); }
             catch { }
             if ( data instanceof Object === false ) { return; }
-            const n = jsonp.apply(data);
-            if ( n === 0 ) { return; }
-            body = safe.JSON_stringify(data);
+            const objAfter = jsonp.apply(data);
+            if ( objAfter === undefined ) { return; }
+            body = safe.JSON_stringify(objAfter);
             safe.uboLog(logPrefix, 'Edited');
             if ( safe.logLevel > 1 ) {
                 safe.uboLog(logPrefix, `After edit:\n${body}`);
@@ -8543,12 +8638,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -8559,8 +8654,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -8585,8 +8681,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -8648,7 +8751,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -8657,7 +8761,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -8956,9 +9060,9 @@ function jsonEditXhrRequestFn(trusted, jsonq = '') {
             try { data = safe.JSON_parse(body); }
             catch { }
             if ( data instanceof Object === false ) { return; }
-            const n = jsonp.apply(data);
-            if ( n === 0 ) { return; }
-            body = safe.JSON_stringify(data);
+            const objAfter = jsonp.apply(data);
+            if ( objAfter === undefined ) { return; }
+            body = safe.JSON_stringify(objAfter);
             safe.uboLog(logPrefix, 'Edited');
             if ( safe.logLevel > 1 ) {
                 safe.uboLog(logPrefix, `After edit:\n${body}`);
@@ -9339,12 +9443,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -9355,8 +9459,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -9381,8 +9486,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -9444,7 +9556,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -9453,7 +9566,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -9750,9 +9863,10 @@ function jsonEditFetchResponseFn(trusted, jsonq = '') {
             const response = responseBefore.clone();
             return response.json().then(obj => {
                 if ( typeof obj !== 'object' ) { return responseBefore; }
-                if ( jsonp.apply(obj) === 0 ) { return responseBefore; }
+                const objAfter = jsonp.apply(obj);
+                if ( objAfter === undefined ) { return responseBefore; }
                 safe.uboLog(logPrefix, 'Edited');
-                const responseAfter = Response.json(obj, {
+                const responseAfter = Response.json(objAfter, {
                     status: responseBefore.status,
                     statusText: responseBefore.statusText,
                     headers: responseBefore.headers,
@@ -10146,12 +10260,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -10162,8 +10276,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -10188,8 +10303,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -10251,7 +10373,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -10260,7 +10383,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -10557,9 +10680,10 @@ function jsonEditFetchResponseFn(trusted, jsonq = '') {
             const response = responseBefore.clone();
             return response.json().then(obj => {
                 if ( typeof obj !== 'object' ) { return responseBefore; }
-                if ( jsonp.apply(obj) === 0 ) { return responseBefore; }
+                const objAfter = jsonp.apply(obj);
+                if ( objAfter === undefined ) { return responseBefore; }
                 safe.uboLog(logPrefix, 'Edited');
-                const responseAfter = Response.json(obj, {
+                const responseAfter = Response.json(objAfter, {
                     status: responseBefore.status,
                     statusText: responseBefore.statusText,
                     headers: responseBefore.headers,
@@ -10953,12 +11077,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -10969,8 +11093,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -10995,8 +11120,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -11058,7 +11190,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -11067,7 +11200,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -11345,9 +11478,9 @@ function jsonEditFetchRequestFn(trusted, jsonq = '') {
         try { data = safe.JSON_parse(body); }
         catch { }
         if ( data instanceof Object === false ) { return; }
-        const n = jsonp.apply(data);
-        if ( n === 0 ) { return; }
-        return safe.JSON_stringify(data);
+        const objAfter = jsonp.apply(data);
+        if ( objAfter === undefined ) { return; }
+        return safe.JSON_stringify(objAfter);
     }
     const proxyHandler = context => {
         const args = context.callArgs;
@@ -11757,12 +11890,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -11773,8 +11906,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -11799,8 +11933,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -11862,7 +12003,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -11871,7 +12013,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -12149,9 +12291,9 @@ function jsonEditFetchRequestFn(trusted, jsonq = '') {
         try { data = safe.JSON_parse(body); }
         catch { }
         if ( data instanceof Object === false ) { return; }
-        const n = jsonp.apply(data);
-        if ( n === 0 ) { return; }
-        return safe.JSON_stringify(data);
+        const objAfter = jsonp.apply(data);
+        if ( objAfter === undefined ) { return; }
+        return safe.JSON_stringify(objAfter);
     }
     const proxyHandler = context => {
         const args = context.callArgs;
@@ -12443,11 +12585,12 @@ function jsonlEditFn(jsonp, text = '') {
             linesAfter.push(lineBefore);
             continue;
         }
-        if ( jsonp.apply(obj) === 0 ) {
+        const objAfter = jsonp.apply(obj);
+        if ( objAfter === undefined ) {
             linesAfter.push(lineBefore);
             continue;
         }
-        const lineAfter = safe.JSON_stringify(obj);
+        const lineAfter = safe.JSON_stringify(objAfter);
         linesAfter.push(lineAfter);
     }
     return linesAfter.join(lineSeparator);
@@ -12502,12 +12645,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -12518,8 +12661,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -12544,8 +12688,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -12607,7 +12758,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -12616,7 +12768,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -13189,11 +13341,12 @@ function jsonlEditFn(jsonp, text = '') {
             linesAfter.push(lineBefore);
             continue;
         }
-        if ( jsonp.apply(obj) === 0 ) {
+        const objAfter = jsonp.apply(obj);
+        if ( objAfter === undefined ) {
             linesAfter.push(lineBefore);
             continue;
         }
-        const lineAfter = safe.JSON_stringify(obj);
+        const lineAfter = safe.JSON_stringify(objAfter);
         linesAfter.push(lineAfter);
     }
     return linesAfter.join(lineSeparator);
@@ -13248,12 +13401,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -13264,8 +13417,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -13290,8 +13444,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -13353,7 +13514,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -13362,7 +13524,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -14015,11 +14177,12 @@ function jsonlEditFn(jsonp, text = '') {
             linesAfter.push(lineBefore);
             continue;
         }
-        if ( jsonp.apply(obj) === 0 ) {
+        const objAfter = jsonp.apply(obj);
+        if ( objAfter === undefined ) {
             linesAfter.push(lineBefore);
             continue;
         }
-        const lineAfter = safe.JSON_stringify(obj);
+        const lineAfter = safe.JSON_stringify(objAfter);
         linesAfter.push(lineAfter);
     }
     return linesAfter.join(lineSeparator);
@@ -14074,12 +14237,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -14090,8 +14253,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -14116,8 +14280,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -14179,7 +14350,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -14188,7 +14360,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
@@ -14849,11 +15021,12 @@ function jsonlEditFn(jsonp, text = '') {
             linesAfter.push(lineBefore);
             continue;
         }
-        if ( jsonp.apply(obj) === 0 ) {
+        const objAfter = jsonp.apply(obj);
+        if ( objAfter === undefined ) {
             linesAfter.push(lineBefore);
             continue;
         }
-        const lineAfter = safe.JSON_stringify(obj);
+        const lineAfter = safe.JSON_stringify(objAfter);
         linesAfter.push(lineAfter);
     }
     return linesAfter.join(lineSeparator);
@@ -14908,12 +15081,12 @@ class JSONPath {
         return paths;
     }
     apply(root) {
-        if ( this.valid === false ) { return 0; }
+        if ( this.valid === false ) { return; }
         const { rval } = this.#compiled;
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
-        const n = paths.length;
-        let i = n;
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
         while ( i-- ) {
             const { obj, key } = this.#resolvePath(paths[i]);
             if ( rval !== undefined ) {
@@ -14924,8 +15097,9 @@ class JSONPath {
                 delete obj[key];
             }
         }
+        const result = this.#root['$'] ?? null;
         this.#root = null;
-        return n;
+        return result;
     }
     dump() {
         return JSON.stringify(this.#compiled);
@@ -14950,8 +15124,15 @@ class JSONPath {
         if ( query.length === 0 ) { return; }
         const steps = [];
         let c = query.charCodeAt(i);
-        steps.push({ mv: c === 0x24 /* $ */ ? this.#ROOT : this.#CURRENT });
-        if ( c === 0x24 /* $ */ || c === 0x40 /* @ */ ) { i += 1; }
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
         let mv = this.#UNDEFINED;
         for (;;) {
             if ( i === query.length ) { break; }
@@ -15013,7 +15194,8 @@ class JSONPath {
             i = r.i + 1;
             mv = this.#UNDEFINED;
         }
-        if ( steps.length <= 1 ) { return; }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
         return { steps, i };
     }
     #evaluate(steps, pathin) {
@@ -15022,7 +15204,7 @@ class JSONPath {
         for ( const step of steps ) {
             switch ( step.mv ) {
             case this.#ROOT:
-                resultset = [ [] ];
+                resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
                 resultset = [ pathin ];
