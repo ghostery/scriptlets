@@ -27,8 +27,7 @@ scriptlets['set-attr.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function runAt(fn, when) {
     const intFromReadyState = state => {
         const targets = {
@@ -345,8 +344,7 @@ scriptlets['trusted-set-attr.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function runAt(fn, when) {
     const intFromReadyState = state => {
         const targets = {
@@ -651,8 +649,7 @@ scriptlets['remove-attr.js'] = {
 aliases: ["ra.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -950,8 +947,7 @@ scriptlets['trusted-create-html.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -1205,8 +1201,7 @@ scriptlets['href-sanitizer.js'] = {
 aliases: ["urlskip.js"],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function urlSkip(url, blocked, steps, directive = {}) {
     try {
         let redirectBlocked = false;
@@ -1639,8 +1634,7 @@ scriptlets['edit-outbound-object.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -2382,8 +2376,7 @@ scriptlets['trusted-edit-outbound-object.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -3125,8 +3118,7 @@ scriptlets['json-edit.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -3868,8 +3860,7 @@ scriptlets['trusted-json-edit.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -4611,8 +4602,7 @@ scriptlets['edit-inbound-object.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -5380,8 +5370,7 @@ scriptlets['trusted-edit-inbound-object.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -6149,8 +6138,7 @@ scriptlets['json-edit-xhr-response.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -6891,8 +6879,7 @@ scriptlets['trusted-json-edit-xhr-response.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -7633,8 +7620,7 @@ scriptlets['json-edit-xhr-request.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -8358,8 +8344,7 @@ scriptlets['trusted-json-edit-xhr-request.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -9083,8 +9068,7 @@ scriptlets['json-edit-fetch-response.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -9900,8 +9884,7 @@ scriptlets['trusted-json-edit-fetch-response.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -10717,8 +10700,7 @@ scriptlets['json-edit-fetch-request.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -11530,8 +11512,7 @@ scriptlets['trusted-json-edit-fetch-request.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -12343,8 +12324,7 @@ scriptlets['jsonl-edit-xhr-response.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -13099,8 +13079,7 @@ scriptlets['trusted-jsonl-edit-xhr-response.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -13855,8 +13834,7 @@ scriptlets['jsonl-edit-fetch-response.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -14699,8 +14677,7 @@ scriptlets['trusted-jsonl-edit-fetch-response.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -15543,8 +15520,7 @@ scriptlets['abort-on-stack-trace.js'] = {
 aliases: ["aost.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function matchesStackTraceFn(
     needleDetails,
     logLevel = ''
@@ -15856,8 +15832,7 @@ scriptlets['trusted-prune-inbound-object.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function getRandomTokenFn() {
     const safe = safeSelf();
     return safe.String_fromCharCode(Date.now() % 26 + 97) +
@@ -16288,8 +16263,7 @@ scriptlets['trusted-prune-outbound-object.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -16754,8 +16728,7 @@ scriptlets['json-prune.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function objectFindOwnerFn(
     root,
     path,
@@ -17150,8 +17123,7 @@ scriptlets['json-prune-fetch-response.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -17626,8 +17598,7 @@ scriptlets['json-prune-xhr-response.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -18111,8 +18082,7 @@ scriptlets['evaldata-prune.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -18568,8 +18538,7 @@ scriptlets['noeval-if.js'] = {
 aliases: ["prevent-eval-if.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -18868,8 +18837,7 @@ scriptlets['prevent-fetch.js'] = {
 aliases: ["no-fetch-if.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -19320,8 +19288,7 @@ scriptlets['trusted-prevent-fetch.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -19772,8 +19739,7 @@ scriptlets['prevent-innerHTML.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -20007,8 +19973,7 @@ scriptlets['prevent-setTimeout.js'] = {
 aliases: ["no-setTimeout-if.js","nostif.js","setTimeout-defuser.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -20343,8 +20308,7 @@ scriptlets['prevent-setInterval.js'] = {
 aliases: ["no-setInterval-if.js","nosiif.js","setInterval-defuser.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -20679,8 +20643,7 @@ scriptlets['prevent-requestAnimationFrame.js'] = {
 aliases: ["no-requestAnimationFrame-if.js","norafif.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -20980,8 +20943,7 @@ scriptlets['set-constant.js'] = {
 aliases: ["set.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function validateConstantFn(trusted, raw, extraArgs = {}) {
     const safe = safeSelf();
     let value;
@@ -21413,8 +21375,7 @@ scriptlets['trusted-set-constant.js'] = {
 aliases: ["trusted-set.js"],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function validateConstantFn(trusted, raw, extraArgs = {}) {
     const safe = safeSelf();
     let value;
@@ -21846,8 +21807,7 @@ scriptlets['trusted-replace-argument.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function validateConstantFn(trusted, raw, extraArgs = {}) {
     const safe = safeSelf();
     let value;
@@ -22346,8 +22306,7 @@ scriptlets['spoof-css.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -22663,8 +22622,7 @@ scriptlets['set-cookie.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function getCookieFn(
     name = ''
 ) {
@@ -22997,8 +22955,7 @@ scriptlets['set-cookie-reload.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function getCookieFn(
     name = ''
 ) {
@@ -23334,8 +23291,7 @@ scriptlets['trusted-set-cookie.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function getCookieFn(
     name = ''
 ) {
@@ -23659,8 +23615,7 @@ scriptlets['trusted-set-cookie-reload.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function getCookieFn(
     name = ''
 ) {
@@ -23987,8 +23942,7 @@ scriptlets['remove-cookie.js'] = {
 aliases: ["cookie-remover.js"],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -24258,8 +24212,7 @@ scriptlets['set-local-storage-item.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -24550,8 +24503,7 @@ scriptlets['set-session-storage-item.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -24842,8 +24794,7 @@ scriptlets['trusted-set-local-storage-item.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -25134,8 +25085,7 @@ scriptlets['trusted-set-session-storage-item.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -25426,8 +25376,7 @@ scriptlets['abort-current-script.js'] = {
 aliases: ["acs.js","abort-current-inline-script.js","acis.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function runAtHtmlElementFn(fn) {
     if ( document.documentElement ) {
         fn();
@@ -25768,8 +25717,7 @@ scriptlets['abort-on-property-read.js'] = {
 aliases: ["aopr.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -26030,8 +25978,7 @@ scriptlets['abort-on-property-write.js'] = {
 aliases: ["aopw.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -26270,8 +26217,7 @@ scriptlets['addEventListener-defuser.js'] = {
 aliases: ["aeld.js","prevent-addEventListener.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function shouldDebug(details) {
     if ( details instanceof Object === false ) { return false; }
     return scriptletGlobals.canDebug && details.debug;
@@ -26660,8 +26606,7 @@ scriptlets['adjust-setInterval.js'] = {
 aliases: ["nano-setInterval-booster.js","nano-sib.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -26887,8 +26832,7 @@ scriptlets['adjust-setTimeout.js'] = {
 aliases: ["nano-setTimeout-booster.js","nano-stb.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -27114,8 +27058,7 @@ scriptlets['prevent-refresh.js'] = {
 aliases: ["refresh-defuser.js"],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -27339,8 +27282,7 @@ scriptlets['remove-class.js'] = {
 aliases: ["rc.js"],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -27629,8 +27571,7 @@ scriptlets['webrtc-if.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -27887,8 +27828,7 @@ scriptlets['prevent-xhr.js'] = {
 aliases: ["no-xhr-if.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -28362,8 +28302,7 @@ scriptlets['prevent-window-open.js'] = {
 aliases: ["nowoif.js","no-window-open-if.js","window.open-defuser.js"],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -28727,8 +28666,7 @@ scriptlets['close-window.js'] = {
 aliases: ["window-close-if.js"],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -28947,8 +28885,7 @@ scriptlets['window.name-defuser.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 
 function windowNameDefuser() {
     if ( window === window.top ) {
@@ -28964,8 +28901,7 @@ scriptlets['overlay-buster.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 
 function overlayBuster(allFrames) {
     if ( allFrames === '' && window !== window.top ) { return; }
@@ -29026,8 +28962,7 @@ scriptlets['alert-buster.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 
 function alertBuster() {
     window.alert = new Proxy(window.alert, {
@@ -29051,8 +28986,7 @@ scriptlets['nowebrtc.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 
 function noWebrtc() {
     var rtcName = window.RTCPeerConnection ? 'RTCPeerConnection' : (
@@ -29094,8 +29028,7 @@ scriptlets['disable-newtab-links.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 
 function disableNewtabLinks() {
     document.addEventListener('click', ev => {
@@ -29119,8 +29052,7 @@ scriptlets['xml-prune.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -29457,8 +29389,7 @@ scriptlets['m3u-prune.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -29813,8 +29744,7 @@ scriptlets['call-nothrow.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -30041,8 +29971,7 @@ scriptlets['remove-node-text.js'] = {
 aliases: ["rmnt.js"],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function runAt(fn, when) {
     const intFromReadyState = state => {
         const targets = {
@@ -30382,8 +30311,7 @@ scriptlets['prevent-canvas.js'] = {
 aliases: [],
 
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -30595,8 +30523,7 @@ scriptlets['multiup.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 
 function multiup() {
     const handler = ev => {
@@ -30622,8 +30549,7 @@ scriptlets['trusted-replace-node-text.js'] = {
 aliases: ["trusted-rpnt.js","replace-node-text.js","rpnt.js"],
 world: 'ISOLATED',
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function runAt(fn, when) {
     const intFromReadyState = state => {
         const targets = {
@@ -30964,8 +30890,7 @@ scriptlets['trusted-replace-fetch-response.js'] = {
 aliases: ["trusted-rpfr.js"],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -31275,8 +31200,7 @@ scriptlets['trusted-replace-xhr-response.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -31583,8 +31507,7 @@ scriptlets['trusted-click-element.js'] = {
 aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function runAtHtmlElementFn(fn) {
     if ( document.documentElement ) {
         fn();
@@ -31982,8 +31905,7 @@ scriptlets['trusted-replace-outbound-text.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -32303,8 +32225,7 @@ scriptlets['trusted-suppress-native-method.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -32710,8 +32631,7 @@ scriptlets['trusted-prevent-xhr.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -33185,8 +33105,7 @@ scriptlets['trusted-prevent-dom-bypass.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -33505,8 +33424,7 @@ scriptlets['trusted-override-element-method.js'] = {
 aliases: [],
 
 requiresTrust: true,
-func: function (...args) {
-const scriptletGlobals = {};
+func: function (scriptletGlobals = {}, ...args) {
 function validateConstantFn(trusted, raw, extraArgs = {}) {
     const safe = safeSelf();
     let value;
