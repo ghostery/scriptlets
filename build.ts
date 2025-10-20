@@ -65,6 +65,7 @@ aliases: ${JSON.stringify(scriptlet.aliases || [])},
 ${scriptlet.world ? `world: '${scriptlet.world}',` : '' }
 requiresTrust: ${scriptlet.requiresTrust || false},
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 ${deps.map((dep) => dep.toString()).join('\n')}
 ${scriptlet.fn.toString()};
 ${scriptlet.fn.name}(...args);
