@@ -28,6 +28,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function runAt(fn, when) {
     const intFromReadyState = state => {
         const targets = {
@@ -345,6 +346,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function runAt(fn, when) {
     const intFromReadyState = state => {
         const targets = {
@@ -650,6 +652,7 @@ aliases: ["ra.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -948,6 +951,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -1202,6 +1206,7 @@ aliases: ["urlskip.js"],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function urlSkip(url, blocked, steps, directive = {}) {
     try {
         let redirectBlocked = false;
@@ -1617,6 +1622,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -2377,6 +2383,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -3137,6 +3144,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -3897,6 +3905,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -4657,6 +4666,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -5443,6 +5453,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -6229,6 +6240,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -6984,6 +6996,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -7739,6 +7752,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -8477,6 +8491,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -9215,6 +9230,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -10049,6 +10065,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -10883,6 +10900,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -11713,6 +11731,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -12543,6 +12562,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -13312,6 +13332,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -14081,6 +14102,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -14942,6 +14964,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -15803,6 +15826,7 @@ aliases: ["aost.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function matchesStackTraceFn(
     needleDetails,
     logLevel = ''
@@ -16115,6 +16139,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function getRandomTokenFn() {
     const safe = safeSelf();
     return safe.String_fromCharCode(Date.now() % 26 + 97) +
@@ -16546,6 +16571,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -17015,6 +17041,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function objectFindOwnerFn(
     root,
     path,
@@ -17410,6 +17437,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -17885,6 +17913,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -18369,6 +18398,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -18829,6 +18859,7 @@ aliases: ["prevent-eval-if.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -19132,6 +19163,7 @@ aliases: ["no-fetch-if.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -19587,6 +19619,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -20042,6 +20075,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -20276,6 +20310,7 @@ aliases: ["no-setTimeout-if.js","nostif.js","setTimeout-defuser.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -20615,6 +20650,7 @@ aliases: ["no-setInterval-if.js","nosiif.js","setInterval-defuser.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -20954,6 +20990,7 @@ aliases: ["no-requestAnimationFrame-if.js","norafif.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -21258,6 +21295,7 @@ aliases: ["set.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function validateConstantFn(trusted, raw, extraArgs = {}) {
     const safe = safeSelf();
     let value;
@@ -21690,6 +21728,7 @@ aliases: ["trusted-set.js"],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function validateConstantFn(trusted, raw, extraArgs = {}) {
     const safe = safeSelf();
     let value;
@@ -22122,6 +22161,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function validateConstantFn(trusted, raw, extraArgs = {}) {
     const safe = safeSelf();
     let value;
@@ -22632,6 +22672,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -22948,6 +22989,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function getCookieFn(
     name = ''
 ) {
@@ -23281,6 +23323,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function getCookieFn(
     name = ''
 ) {
@@ -23617,6 +23660,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function getCookieFn(
     name = ''
 ) {
@@ -23941,6 +23985,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function getCookieFn(
     name = ''
 ) {
@@ -24268,6 +24313,7 @@ aliases: ["cookie-remover.js"],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -24538,6 +24584,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -24829,6 +24876,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -25120,6 +25168,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -25411,6 +25460,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -25702,6 +25752,7 @@ aliases: ["acs.js","abort-current-inline-script.js","acis.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function runAtHtmlElementFn(fn) {
     if ( document.documentElement ) {
         fn();
@@ -26043,6 +26094,7 @@ aliases: ["aopr.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -26304,6 +26356,7 @@ aliases: ["aopw.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -26543,6 +26596,7 @@ aliases: ["aeld.js","prevent-addEventListener.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function shouldDebug(details) {
     if ( details instanceof Object === false ) { return false; }
     return scriptletGlobals.canDebug && details.debug;
@@ -26936,6 +26990,7 @@ aliases: ["nano-setInterval-booster.js","nano-sib.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -27162,6 +27217,7 @@ aliases: ["nano-setTimeout-booster.js","nano-stb.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -27388,6 +27444,7 @@ aliases: ["refresh-defuser.js"],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -27612,6 +27669,7 @@ aliases: ["rc.js"],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -27901,6 +27959,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -28158,6 +28217,7 @@ aliases: ["no-xhr-if.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -28632,6 +28692,7 @@ aliases: ["nowoif.js","no-window-open-if.js","window.open-defuser.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -29000,6 +29061,7 @@ aliases: ["window-close-if.js"],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -29219,6 +29281,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 
 function windowNameDefuser() {
     if ( window === window.top ) {
@@ -29235,6 +29298,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 
 function overlayBuster(allFrames) {
     if ( allFrames === '' && window !== window.top ) { return; }
@@ -29296,6 +29360,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 
 function alertBuster() {
     window.alert = new Proxy(window.alert, {
@@ -29320,6 +29385,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 
 function noWebrtc() {
     var rtcName = window.RTCPeerConnection ? 'RTCPeerConnection' : (
@@ -29362,6 +29428,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 
 function disableNewtabLinks() {
     document.addEventListener('click', ev => {
@@ -29386,6 +29453,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -29723,6 +29791,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -30078,6 +30147,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -30305,6 +30375,7 @@ aliases: ["rmnt.js"],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function runAt(fn, when) {
     const intFromReadyState = state => {
         const targets = {
@@ -30645,6 +30716,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -30857,6 +30929,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 
 function multiup() {
     const handler = ev => {
@@ -30883,6 +30956,7 @@ aliases: ["trusted-rpnt.js","replace-node-text.js","rpnt.js"],
 world: 'ISOLATED',
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function runAt(fn, when) {
     const intFromReadyState = state => {
         const targets = {
@@ -31224,6 +31298,7 @@ aliases: ["trusted-rpfr.js"],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -31534,6 +31609,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -31841,6 +31917,7 @@ aliases: [],
 world: 'ISOLATED',
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function runAtHtmlElementFn(fn) {
     if ( document.documentElement ) {
         fn();
@@ -32253,6 +32330,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -32577,6 +32655,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function proxyApplyFn(
     target = '',
     handler = ''
@@ -32987,6 +33066,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
     const needles = new Map();
@@ -33461,6 +33541,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
         return scriptletGlobals.safeSelf;
@@ -33784,6 +33865,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
+if (scriptletGlobals.__ghostery__subframe_only_scripting === true && window.top === undefined) return;
 function validateConstantFn(trusted, raw, extraArgs = {}) {
     const safe = safeSelf();
     let value;
