@@ -2231,9 +2231,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -2991,9 +2991,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -3751,9 +3751,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -4511,9 +4511,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -5271,9 +5271,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -6057,9 +6057,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -6798,9 +6798,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -7553,9 +7553,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -8308,9 +8308,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -9046,9 +9046,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -9868,9 +9868,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -10702,9 +10702,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -11536,9 +11536,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -12366,9 +12366,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -13134,9 +13134,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -13903,9 +13903,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -14756,9 +14756,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -15617,9 +15617,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -19500,9 +19500,14 @@ function preventFetchFn(
     const responseProps = {
         statusText: { value: 'OK' },
     };
+    const responseHeaders = {};
     if ( /^\{.*\}$/.test(responseType) ) {
         try {
             Object.entries(JSON.parse(responseType)).forEach(([ p, v ]) => {
+                if ( p === 'headers' && trusted ) {
+                    Object.assign(responseHeaders, v);
+                    return;
+                }
                 if ( validResponseProps[p] === undefined ) { return; }
                 if ( validResponseProps[p].includes(v) === false ) { return; }
                 responseProps[p] = { value: v };
@@ -19555,11 +19560,11 @@ function preventFetchFn(
         }
         return Promise.resolve(generateContentFn(trusted, responseBody)).then(text => {
             safe.uboLog(logPrefix, `Prevented with response "${text}"`);
-            const response = new Response(text, {
-                headers: {
-                    'Content-Length': text.length,
-                }
-            });
+            const headers = Object.assign({}, responseHeaders);
+            if ( headers['content-length'] === undefined ) {
+                headers['content-length'] = text.length;
+            }
+            const response = new Response(text, { headers });
             const props = Object.assign(
                 { url: { value: details.url } },
                 responseProps
@@ -19955,9 +19960,14 @@ function preventFetchFn(
     const responseProps = {
         statusText: { value: 'OK' },
     };
+    const responseHeaders = {};
     if ( /^\{.*\}$/.test(responseType) ) {
         try {
             Object.entries(JSON.parse(responseType)).forEach(([ p, v ]) => {
+                if ( p === 'headers' && trusted ) {
+                    Object.assign(responseHeaders, v);
+                    return;
+                }
                 if ( validResponseProps[p] === undefined ) { return; }
                 if ( validResponseProps[p].includes(v) === false ) { return; }
                 responseProps[p] = { value: v };
@@ -20010,11 +20020,11 @@ function preventFetchFn(
         }
         return Promise.resolve(generateContentFn(trusted, responseBody)).then(text => {
             safe.uboLog(logPrefix, `Prevented with response "${text}"`);
-            const response = new Response(text, {
-                headers: {
-                    'Content-Length': text.length,
-                }
-            });
+            const headers = Object.assign({}, responseHeaders);
+            if ( headers['content-length'] === undefined ) {
+                headers['content-length'] = text.length;
+            }
+            const response = new Response(text, { headers });
             const props = Object.assign(
                 { url: { value: details.url } },
                 responseProps
