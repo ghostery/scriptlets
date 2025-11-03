@@ -2231,9 +2231,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -2991,9 +2991,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -3751,9 +3751,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -4511,9 +4511,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -5271,9 +5271,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -5397,6 +5397,7 @@ function editInboundObjectFn(
     const argPos = parseInt(argPosRaw, 10);
     if ( isNaN(argPos) ) { return; }
     const getArgPos = args => {
+        if ( Array.isArray(args) === false ) { return; }
         if ( argPos >= 0 ) {
             if ( args.length <= argPos ) { return; }
             return argPos;
@@ -6057,9 +6058,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -6183,6 +6184,7 @@ function editInboundObjectFn(
     const argPos = parseInt(argPosRaw, 10);
     if ( isNaN(argPos) ) { return; }
     const getArgPos = args => {
+        if ( Array.isArray(args) === false ) { return; }
         if ( argPos >= 0 ) {
             if ( args.length <= argPos ) { return; }
             return argPos;
@@ -6798,9 +6800,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -7553,9 +7555,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -8308,9 +8310,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -9046,9 +9048,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -9868,9 +9870,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -10702,9 +10704,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -11536,9 +11538,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -12366,9 +12368,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -13134,9 +13136,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -13903,9 +13905,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -14756,9 +14758,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -15617,9 +15619,9 @@ class JSONPath {
                 break;
             }
             if ( c === 0x5C /* \ */ && (end+1) < len ) {
-                parts.push(query.slice(beg, end));
                 const d = query.charCodeAt(end+1);
-                if ( d === targetCharCode || d === 0x5C ) {
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
                     end += 1;
                     beg = end;
                 }
@@ -19500,9 +19502,14 @@ function preventFetchFn(
     const responseProps = {
         statusText: { value: 'OK' },
     };
+    const responseHeaders = {};
     if ( /^\{.*\}$/.test(responseType) ) {
         try {
             Object.entries(JSON.parse(responseType)).forEach(([ p, v ]) => {
+                if ( p === 'headers' && trusted ) {
+                    Object.assign(responseHeaders, v);
+                    return;
+                }
                 if ( validResponseProps[p] === undefined ) { return; }
                 if ( validResponseProps[p].includes(v) === false ) { return; }
                 responseProps[p] = { value: v };
@@ -19555,11 +19562,11 @@ function preventFetchFn(
         }
         return Promise.resolve(generateContentFn(trusted, responseBody)).then(text => {
             safe.uboLog(logPrefix, `Prevented with response "${text}"`);
-            const response = new Response(text, {
-                headers: {
-                    'Content-Length': text.length,
-                }
-            });
+            const headers = Object.assign({}, responseHeaders);
+            if ( headers['content-length'] === undefined ) {
+                headers['content-length'] = text.length;
+            }
+            const response = new Response(text, { headers });
             const props = Object.assign(
                 { url: { value: details.url } },
                 responseProps
@@ -19955,9 +19962,14 @@ function preventFetchFn(
     const responseProps = {
         statusText: { value: 'OK' },
     };
+    const responseHeaders = {};
     if ( /^\{.*\}$/.test(responseType) ) {
         try {
             Object.entries(JSON.parse(responseType)).forEach(([ p, v ]) => {
+                if ( p === 'headers' && trusted ) {
+                    Object.assign(responseHeaders, v);
+                    return;
+                }
                 if ( validResponseProps[p] === undefined ) { return; }
                 if ( validResponseProps[p].includes(v) === false ) { return; }
                 responseProps[p] = { value: v };
@@ -20010,11 +20022,11 @@ function preventFetchFn(
         }
         return Promise.resolve(generateContentFn(trusted, responseBody)).then(text => {
             safe.uboLog(logPrefix, `Prevented with response "${text}"`);
-            const response = new Response(text, {
-                headers: {
-                    'Content-Length': text.length,
-                }
-            });
+            const headers = Object.assign({}, responseHeaders);
+            if ( headers['content-length'] === undefined ) {
+                headers['content-length'] = text.length;
+            }
+            const response = new Response(text, { headers });
             const props = Object.assign(
                 { url: { value: details.url } },
                 responseProps
@@ -29912,6 +29924,90 @@ function safeSelf() {
     }
     return safe;
 }
+function proxyApplyFn(
+    target = '',
+    handler = ''
+) {
+    let context = globalThis;
+    let prop = target;
+    for (;;) {
+        const pos = prop.indexOf('.');
+        if ( pos === -1 ) { break; }
+        context = context[prop.slice(0, pos)];
+        if ( context instanceof Object === false ) { return; }
+        prop = prop.slice(pos+1);
+    }
+    const fn = context[prop];
+    if ( typeof fn !== 'function' ) { return; }
+    if ( proxyApplyFn.CtorContext === undefined ) {
+        proxyApplyFn.ctorContexts = [];
+        proxyApplyFn.CtorContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, callArgs) {
+                this.callFn = callFn;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.construct(this.callFn, this.callArgs);
+                this.callFn = this.callArgs = this.private = undefined;
+                proxyApplyFn.ctorContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.ctorContexts.length !== 0
+                    ? proxyApplyFn.ctorContexts.pop().init(...args)
+                    : new proxyApplyFn.CtorContext(...args);
+            }
+        };
+        proxyApplyFn.applyContexts = [];
+        proxyApplyFn.ApplyContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, thisArg, callArgs) {
+                this.callFn = callFn;
+                this.thisArg = thisArg;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.apply(this.callFn, this.thisArg, this.callArgs);
+                this.callFn = this.thisArg = this.callArgs = this.private = undefined;
+                proxyApplyFn.applyContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.applyContexts.length !== 0
+                    ? proxyApplyFn.applyContexts.pop().init(...args)
+                    : new proxyApplyFn.ApplyContext(...args);
+            }
+        };
+        proxyApplyFn.isCtor = new Map();
+    }
+    if ( proxyApplyFn.isCtor.has(target) === false ) {
+        proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
+    }
+    const fnStr = fn.toString();
+    const toString = (function toString() { return fnStr; }).bind(null);
+    const proxyDetails = {
+        apply(target, thisArg, args) {
+            return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
+        },
+        get(target, prop) {
+            if ( prop === 'toString' ) { return toString; }
+            return Reflect.get(target, prop);
+        },
+    };
+    if ( proxyApplyFn.isCtor.get(target) ) {
+        proxyDetails.construct = function(target, args) {
+            return handler(proxyApplyFn.CtorContext.factory(target, args));
+        };
+    }
+    context[prop] = new Proxy(fn, proxyDetails);
+}
 function m3uPrune(
     m3uPattern = '',
     urlPattern = ''
@@ -30023,28 +30119,30 @@ function m3uPrune(
         if ( arg instanceof Request ) { return arg.url; }
         return String(arg);
     };
-    const realFetch = self.fetch;
-    self.fetch = new Proxy(self.fetch, {
-        apply: function(target, thisArg, args) {
-            if ( reUrl.test(urlFromArg(args[0])) === false ) {
-                return Reflect.apply(target, thisArg, args);
-            }
-            return realFetch(...args).then(realResponse =>
-                realResponse.text().then(text => {
-                    const response = new Response(pruner(text), {
-                        status: realResponse.status,
-                        statusText: realResponse.statusText,
-                        headers: realResponse.headers,
-                    });
-                    if ( toLog.length !== 0 ) {
-                        toLog.unshift(logPrefix);
-                        safe.uboLog(toLog.join('\n'));
-                    }
-                    return response;
-                })
-            );
+    proxyApplyFn('fetch', async function fetch(context) {
+        const args = context.callArgs;
+        const fetchPromise = context.reflect();
+        if ( reUrl.test(urlFromArg(args[0])) === false ) { return fetchPromise; }
+        const responseBefore = await fetchPromise;
+        const responseClone = responseBefore.clone();
+        const textBefore = await responseClone.text();
+        const textAfter = pruner(textBefore);
+        if ( textAfter === textBefore ) { return responseBefore; }
+        const responseAfter = new Response(textAfter, {
+            status: responseBefore.status,
+            statusText: responseBefore.statusText,
+            headers: responseBefore.headers,
+        });
+        Object.defineProperties(responseAfter, {
+            url: { value: responseBefore.url },
+            type: { value: responseBefore.type },
+        });
+        if ( toLog.length !== 0 ) {
+            toLog.unshift(logPrefix);
+            safe.uboLog(toLog.join('\n'));
         }
-    });
+        return responseAfter;
+    })
     self.XMLHttpRequest.prototype.open = new Proxy(self.XMLHttpRequest.prototype.open, {
         apply: async (target, thisArg, args) => {
             if ( reUrl.test(urlFromArg(args[1])) === false ) {
