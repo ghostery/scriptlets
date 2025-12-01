@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "deno build.ts --tagName 1.67.1b5 > ubo.js",
+    "build": "deno build.ts --tagName 1.68.1b0 > ubo.js",
     "test": "node --test"
   },
   "author": {

@@ -19129,6 +19129,231 @@ noEvalIf(...args);
 };
 
 
+scriptlets['prevent-dialog.js'] = {
+aliases: [],
+
+requiresTrust: false,
+func: function (scriptletGlobals = {}, ...args) {
+function safeSelf() {
+    if ( scriptletGlobals.safeSelf ) {
+        return scriptletGlobals.safeSelf;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+        onIdle(fn, options) {
+            if ( self.requestIdleCallback ) {
+                return self.requestIdleCallback(fn, options);
+            }
+            return self.requestAnimationFrame(fn);
+        },
+        offIdle(id) {
+            if ( self.requestIdleCallback ) {
+                return self.cancelIdleCallback(id);
+            }
+            return self.cancelAnimationFrame(id);
+        }
+    };
+    scriptletGlobals.safeSelf = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function preventDialog(
+    selector = '',
+) {
+    const safe = safeSelf();
+    const logPrefix = safe.makeLogPrefix('prevent-dialog', selector);
+    const prevent = ( ) => {
+        debouncer = undefined;
+        const elems = document.querySelectorAll(`dialog${selector}`);
+        for ( const elem of elems ) {
+            if ( typeof elem.close !== 'function' ) { continue; }
+            if ( elem.open === false ) { continue; }
+            elem.close();
+            safe.uboLog(logPrefix, 'Closed');
+        }
+    };
+    let debouncer;
+    const observer = new MutationObserver(( ) => {
+        if ( debouncer !== undefined ) { return; }
+        debouncer = requestAnimationFrame(prevent);
+    });
+    observer.observe(document, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+    });
+};
+preventDialog(...args);
+},
+};
+
+
 scriptlets['prevent-fetch.js'] = {
 aliases: ["no-fetch-if.js"],
 
@@ -19547,40 +19772,41 @@ function preventFetchFn(
             responseProps.type = { value: responseType };
         }
     }
+    const fetchProps = (src, out) => {
+        if ( typeof src !== 'object' || src === null ) { return; }
+        const props = [
+            'body', 'cache', 'credentials', 'duplex', 'headers',
+            'integrity', 'keepalive', 'method', 'mode', 'priority',
+            'redirect', 'referrer', 'referrerPolicy', 'signal',
+        ];
+        for ( const prop of props ) {
+            if ( src[prop] === undefined ) { continue; }
+            out[prop] = src[prop];
+        }
+    };
+    const fetchDetails = args => {
+        const out = {};
+        if ( args[0] instanceof self.Request ) {
+            out.url = `${args[0].url}`;
+            fetchProps(args[0], out);
+        } else {
+            out.url = `${args[0]}`;
+        }
+        fetchProps(args[1], out);
+        return out;
+    };
     proxyApplyFn('fetch', function fetch(context) {
         const { callArgs } = context;
-        const details = (( ) => {
-            const fetchProps = (src, out) => {
-                if ( typeof src !== 'object' || src === null ) { return; }
-                const props = [
-                    'body', 'cache', 'credentials', 'duplex', 'headers',
-                    'integrity', 'keepalive', 'method', 'mode', 'priority',
-                    'redirect', 'referrer', 'referrerPolicy', 'signal',
-                ];
-                for ( const prop of props ) {
-                    if ( src[prop] === undefined ) { continue; }
-                    out[prop] = src[prop];
-                }
-            };
-            const out = {};
-            if ( callArgs[0] instanceof self.Request ) {
-                out.url = `${callArgs[0].url}`;
-                fetchProps(callArgs[0], out);
-            } else {
-                out.url = `${callArgs[0]}`;
-            }
-            fetchProps(callArgs[1], out);
-            return out;
-        })();
+        const details = fetchDetails(callArgs);
         if ( safe.logLevel > 1 || propsToMatch === '' && responseBody === '' ) {
-            const out = Array.from(details).map(a => `${a[0]}:${a[1]}`);
+            const out = Array.from(Object.entries(details)).map(a => `${a[0]}:${a[1]}`);
             safe.uboLog(logPrefix, `Called: ${out.join('\n')}`);
         }
         if ( propsToMatch === '' && responseBody === '' ) {
             return context.reflect();
         }
         const matched = matchObjectPropertiesFn(propNeedles, details);
-        if ( matched === undefined ) {
+        if ( matched === undefined || matched.length === 0 ) {
             return context.reflect();
         }
         return Promise.resolve(generateContentFn(trusted, responseBody)).then(text => {
@@ -20030,40 +20256,41 @@ function preventFetchFn(
             responseProps.type = { value: responseType };
         }
     }
+    const fetchProps = (src, out) => {
+        if ( typeof src !== 'object' || src === null ) { return; }
+        const props = [
+            'body', 'cache', 'credentials', 'duplex', 'headers',
+            'integrity', 'keepalive', 'method', 'mode', 'priority',
+            'redirect', 'referrer', 'referrerPolicy', 'signal',
+        ];
+        for ( const prop of props ) {
+            if ( src[prop] === undefined ) { continue; }
+            out[prop] = src[prop];
+        }
+    };
+    const fetchDetails = args => {
+        const out = {};
+        if ( args[0] instanceof self.Request ) {
+            out.url = `${args[0].url}`;
+            fetchProps(args[0], out);
+        } else {
+            out.url = `${args[0]}`;
+        }
+        fetchProps(args[1], out);
+        return out;
+    };
     proxyApplyFn('fetch', function fetch(context) {
         const { callArgs } = context;
-        const details = (( ) => {
-            const fetchProps = (src, out) => {
-                if ( typeof src !== 'object' || src === null ) { return; }
-                const props = [
-                    'body', 'cache', 'credentials', 'duplex', 'headers',
-                    'integrity', 'keepalive', 'method', 'mode', 'priority',
-                    'redirect', 'referrer', 'referrerPolicy', 'signal',
-                ];
-                for ( const prop of props ) {
-                    if ( src[prop] === undefined ) { continue; }
-                    out[prop] = src[prop];
-                }
-            };
-            const out = {};
-            if ( callArgs[0] instanceof self.Request ) {
-                out.url = `${callArgs[0].url}`;
-                fetchProps(callArgs[0], out);
-            } else {
-                out.url = `${callArgs[0]}`;
-            }
-            fetchProps(callArgs[1], out);
-            return out;
-        })();
+        const details = fetchDetails(callArgs);
         if ( safe.logLevel > 1 || propsToMatch === '' && responseBody === '' ) {
-            const out = Array.from(details).map(a => `${a[0]}:${a[1]}`);
+            const out = Array.from(Object.entries(details)).map(a => `${a[0]}:${a[1]}`);
             safe.uboLog(logPrefix, `Called: ${out.join('\n')}`);
         }
         if ( propsToMatch === '' && responseBody === '' ) {
             return context.reflect();
         }
         const matched = matchObjectPropertiesFn(propNeedles, details);
-        if ( matched === undefined ) {
+        if ( matched === undefined || matched.length === 0 ) {
             return context.reflect();
         }
         return Promise.resolve(generateContentFn(trusted, responseBody)).then(text => {
