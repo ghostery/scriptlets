@@ -61,7 +61,8 @@ function setAttrFn(
     logPrefix,
     selector = '',
     attr = '',
-    value = ''
+    value = '',
+    options = {}
 ) {
     if ( selector === '' ) { return; }
     if ( attr === '' ) { return; }
@@ -123,7 +124,7 @@ function setAttrFn(
             childList: true,
         });
     };
-    runAt(( ) => { start(); }, 'idle');
+    runAt(( ) => { start(); }, options.runAt || 'idle');
 }
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
@@ -323,7 +324,6 @@ function setAttr(
     const safe = safeSelf();
     const logPrefix = safe.makeLogPrefix('set-attr', selector, attr, value);
     const validValues = [ '', 'false', 'true' ];
-
     if ( validValues.includes(value.toLowerCase()) === false ) {
         if ( /^\d+$/.test(value) ) {
             const n = parseInt(value, 10);
@@ -333,8 +333,8 @@ function setAttr(
             return;
         }
     }
-
-    setAttrFn(false, logPrefix, selector, attr, value);
+    const options = safe.getExtraArgs(Array.from(arguments), 3);
+    setAttrFn(false, logPrefix, selector, attr, value, options);
 };
 setAttr(...args);
 },
@@ -379,7 +379,8 @@ function setAttrFn(
     logPrefix,
     selector = '',
     attr = '',
-    value = ''
+    value = '',
+    options = {}
 ) {
     if ( selector === '' ) { return; }
     if ( attr === '' ) { return; }
@@ -441,7 +442,7 @@ function setAttrFn(
             childList: true,
         });
     };
-    runAt(( ) => { start(); }, 'idle');
+    runAt(( ) => { start(); }, options.runAt || 'idle');
 }
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
@@ -640,7 +641,8 @@ function trustedSetAttr(
 ) {
     const safe = safeSelf();
     const logPrefix = safe.makeLogPrefix('trusted-set-attr', selector, attr, value);
-    setAttrFn(true, logPrefix, selector, attr, value);
+    const options = safe.getExtraArgs(Array.from(arguments), 3);
+    setAttrFn(true, logPrefix, selector, attr, value, options);
 };
 trustedSetAttr(...args);
 },
@@ -1141,6 +1143,34 @@ function safeSelf() {
     }
     return safe;
 }
+function runAt(fn, when) {
+    const intFromReadyState = state => {
+        const targets = {
+            'loading': 1, 'asap': 1,
+            'interactive': 2, 'end': 2, '2': 2,
+            'complete': 3, 'idle': 3, '3': 3,
+        };
+        const tokens = Array.isArray(state) ? state : [ state ];
+        for ( const token of tokens ) {
+            const prop = `${token}`;
+            if ( Object.hasOwn(targets, prop) === false ) { continue; }
+            return targets[prop];
+        }
+        return 0;
+    };
+    const runAt = intFromReadyState(when);
+    if ( intFromReadyState(document.readyState) >= runAt ) {
+        fn(); return;
+    }
+    const onStateChange = ( ) => {
+        if ( intFromReadyState(document.readyState) < runAt ) { return; }
+        fn();
+        safe.removeEventListener.apply(document, args);
+    };
+    const safe = safeSelf();
+    const args = [ 'readystatechange', onStateChange, { capture: true } ];
+    safe.addEventListener.apply(document, args);
+}
 function trustedCreateHTML(
     parentSelector,
     htmlStr = '',
@@ -1150,6 +1180,7 @@ function trustedCreateHTML(
     if ( htmlStr === '' ) { return; }
     const safe = safeSelf();
     const logPrefix = safe.makeLogPrefix('trusted-create-html', parentSelector, htmlStr, durationStr);
+    const extraArgs = safe.getExtraArgs(Array.from(arguments), 3);
     // We do not want to recursively create elements
     self.trustedCreateHTML = true;
     let ancestor = self.frameElement;
@@ -1189,12 +1220,31 @@ function trustedCreateHTML(
         setTimeout(remove, duration);
         return true;
     };
-    if ( append() ) { return; }
-    const observer = new MutationObserver(( ) => {
-        if ( append() === false ) { return; }
-        observer.disconnect();
-    });
-    observer.observe(document, { childList: true, subtree: true });
+    const start = ( ) => {
+        if ( append() ) { return; }
+        const observer = new MutationObserver(( ) => {
+            if ( append() === false ) { return; }
+            observer.disconnect();
+        });
+        const observerOptions = {
+            childList: true,
+            subtree: true,
+        };
+        if ( /[#.[]/.test(parentSelector) ) {
+            observerOptions.attributes = true;
+            if ( parentSelector.includes('[') === false ) {
+                observerOptions.attributeFilter = [];
+                if ( parentSelector.includes('#') ) {
+                    observerOptions.attributeFilter.push('id');
+                }
+                if ( parentSelector.includes('.') ) {
+                    observerOptions.attributeFilter.push('class');
+                }
+            }
+        }
+        observer.observe(document, observerOptions);
+    };
+    runAt(start, extraArgs.runAt || 'loading');
 };
 trustedCreateHTML(...args);
 },
