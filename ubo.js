@@ -1921,27 +1921,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 class JSONPath {
     static create(query) {
@@ -2682,27 +2693,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 class JSONPath {
     static create(query) {
@@ -3443,27 +3465,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 class JSONPath {
     static create(query) {
@@ -4204,27 +4237,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 class JSONPath {
     static create(query) {
@@ -4965,27 +5009,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 class JSONPath {
     static create(query) {
@@ -5753,27 +5808,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 class JSONPath {
     static create(query) {
@@ -9341,27 +9407,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
@@ -10200,27 +10277,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
@@ -11059,27 +11147,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
@@ -11915,27 +12014,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
@@ -14311,27 +14421,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
@@ -15197,27 +15318,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
@@ -16828,27 +16960,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function objectFindOwnerFn(
     root,
@@ -17236,6 +17379,101 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
+function proxyApplyFn(
+    target = '',
+    handler = ''
+) {
+    let context = globalThis;
+    let prop = target;
+    for (;;) {
+        const pos = prop.indexOf('.');
+        if ( pos === -1 ) { break; }
+        context = context[prop.slice(0, pos)];
+        if ( context instanceof Object === false ) { return; }
+        prop = prop.slice(pos+1);
+    }
+    const fn = context[prop];
+    if ( typeof fn !== 'function' ) { return; }
+    if ( proxyApplyFn.CtorContext === undefined ) {
+        proxyApplyFn.ctorContexts = [];
+        proxyApplyFn.CtorContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, callArgs) {
+                this.callFn = callFn;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.construct(this.callFn, this.callArgs);
+                this.callFn = this.callArgs = this.private = undefined;
+                proxyApplyFn.ctorContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.ctorContexts.length !== 0
+                    ? proxyApplyFn.ctorContexts.pop().init(...args)
+                    : new proxyApplyFn.CtorContext(...args);
+            }
+        };
+        proxyApplyFn.applyContexts = [];
+        proxyApplyFn.ApplyContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, thisArg, callArgs) {
+                this.callFn = callFn;
+                this.thisArg = thisArg;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.apply(this.callFn, this.thisArg, this.callArgs);
+                this.callFn = this.thisArg = this.callArgs = this.private = undefined;
+                proxyApplyFn.applyContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.applyContexts.length !== 0
+                    ? proxyApplyFn.applyContexts.pop().init(...args)
+                    : new proxyApplyFn.ApplyContext(...args);
+            }
+        };
+        proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
+    }
+    if ( proxyApplyFn.isCtor.has(target) === false ) {
+        proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
+    }
+    const proxyDetails = {
+        apply(target, thisArg, args) {
+            return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
+        }
+    };
+    if ( proxyApplyFn.isCtor.get(target) ) {
+        proxyDetails.construct = function(target, args) {
+            return handler(proxyApplyFn.CtorContext.factory(target, args));
+        };
+    }
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
+}
 function objectFindOwnerFn(
     root,
     path,
@@ -17600,26 +17838,24 @@ function jsonPrune(
     const logPrefix = safe.makeLogPrefix('json-prune', rawPrunePaths, rawNeedlePaths, stackNeedle);
     const stackNeedleDetails = safe.initPattern(stackNeedle, { canNegate: true });
     const extraArgs = safe.getExtraArgs(Array.from(arguments), 3);
-    JSON.parse = new Proxy(JSON.parse, {
-        apply: function(target, thisArg, args) {
-            const objBefore = Reflect.apply(target, thisArg, args);
-            if ( rawPrunePaths === '' ) {
-                safe.uboLog(logPrefix, safe.JSON_stringify(objBefore, null, 2));
-            }
-            const objAfter = objectPruneFn(
-                objBefore,
-                rawPrunePaths,
-                rawNeedlePaths,
-                stackNeedleDetails,
-                extraArgs
-            );
-            if ( objAfter === undefined ) { return objBefore; }
-            safe.uboLog(logPrefix, 'Pruned');
-            if ( safe.logLevel > 1 ) {
-                safe.uboLog(logPrefix, `After pruning:\n${safe.JSON_stringify(objAfter, null, 2)}`);
-            }
-            return objAfter;
-        },
+    proxyApplyFn('JSON.parse', function(context) {
+        const objBefore = context.reflect();
+        if ( rawPrunePaths === '' ) {
+            safe.uboLog(logPrefix, safe.JSON_stringify(objBefore, null, 2));
+        }
+        const objAfter = objectPruneFn(
+            objBefore,
+            rawPrunePaths,
+            rawNeedlePaths,
+            stackNeedleDetails,
+            extraArgs
+        );
+        if ( objAfter === undefined ) { return objBefore; }
+        safe.uboLog(logPrefix, 'Pruned');
+        if ( safe.logLevel > 1 ) {
+            safe.uboLog(logPrefix, `After pruning:\n${safe.JSON_stringify(objAfter, null, 2)}`);
+        }
+        return objAfter;
     });
 };
 jsonPrune(...args);
@@ -18679,27 +18915,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function objectFindOwnerFn(
     root,
@@ -19330,27 +19577,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function noEvalIf(
     needle = ''
@@ -19662,27 +19920,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function preventAddEventListener(
     type = '',
@@ -20073,27 +20342,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
@@ -20185,6 +20465,14 @@ function generateContentFn(trusted, directive) {
             warXHR.open('GET', fullpath.join(''));
             warXHR.send();
         }).catch(( ) => '');
+    }
+    if ( directive.startsWith('join:') ) {
+        const parts = directive.slice(7)
+                .split(directive.slice(5, 7))
+                .map(a => generateContentFn(trusted, a));
+        return parts.some(a => a instanceof Promise)
+            ? Promise.all(parts).then(parts => parts.join(''))
+            : parts.join('');
     }
     if ( trusted ) {
         return directive;
@@ -20569,27 +20857,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     const safe = safeSelf();
@@ -20681,6 +20980,14 @@ function generateContentFn(trusted, directive) {
             warXHR.open('GET', fullpath.join(''));
             warXHR.send();
         }).catch(( ) => '');
+    }
+    if ( directive.startsWith('join:') ) {
+        const parts = directive.slice(7)
+                .split(directive.slice(5, 7))
+                .map(a => generateContentFn(trusted, a));
+        return parts.some(a => a instanceof Promise)
+            ? Promise.all(parts).then(parts => parts.join(''))
+            : parts.join('');
     }
     if ( trusted ) {
         return directive;
@@ -21520,27 +21827,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function preventSetTimeout(
     needleRaw = '',
@@ -21860,27 +22178,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function preventSetInterval(
     needleRaw = '',
@@ -22170,27 +22499,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function preventRequestAnimationFrame(
     needleRaw = ''
@@ -22214,6 +22554,1144 @@ function preventRequestAnimationFrame(
     });
 };
 preventRequestAnimationFrame(...args);
+},
+};
+
+
+scriptlets['prevent-xhr.js'] = {
+aliases: ["no-xhr-if.js"],
+
+requiresTrust: false,
+func: function (scriptletGlobals = {}, ...args) {
+function proxyApplyFn(
+    target = '',
+    handler = ''
+) {
+    let context = globalThis;
+    let prop = target;
+    for (;;) {
+        const pos = prop.indexOf('.');
+        if ( pos === -1 ) { break; }
+        context = context[prop.slice(0, pos)];
+        if ( context instanceof Object === false ) { return; }
+        prop = prop.slice(pos+1);
+    }
+    const fn = context[prop];
+    if ( typeof fn !== 'function' ) { return; }
+    if ( proxyApplyFn.CtorContext === undefined ) {
+        proxyApplyFn.ctorContexts = [];
+        proxyApplyFn.CtorContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, callArgs) {
+                this.callFn = callFn;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.construct(this.callFn, this.callArgs);
+                this.callFn = this.callArgs = this.private = undefined;
+                proxyApplyFn.ctorContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.ctorContexts.length !== 0
+                    ? proxyApplyFn.ctorContexts.pop().init(...args)
+                    : new proxyApplyFn.CtorContext(...args);
+            }
+        };
+        proxyApplyFn.applyContexts = [];
+        proxyApplyFn.ApplyContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, thisArg, callArgs) {
+                this.callFn = callFn;
+                this.thisArg = thisArg;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.apply(this.callFn, this.thisArg, this.callArgs);
+                this.callFn = this.thisArg = this.callArgs = this.private = undefined;
+                proxyApplyFn.applyContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.applyContexts.length !== 0
+                    ? proxyApplyFn.applyContexts.pop().init(...args)
+                    : new proxyApplyFn.ApplyContext(...args);
+            }
+        };
+        proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
+    }
+    if ( proxyApplyFn.isCtor.has(target) === false ) {
+        proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
+    }
+    const proxyDetails = {
+        apply(target, thisArg, args) {
+            return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
+        }
+    };
+    if ( proxyApplyFn.isCtor.get(target) ) {
+        proxyDetails.construct = function(target, args) {
+            return handler(proxyApplyFn.CtorContext.factory(target, args));
+        };
+    }
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
+}
+function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
+    const safe = safeSelf();
+    const needles = new Map();
+    if ( propsToMatch === undefined || propsToMatch === '' ) { return needles; }
+    const options = { canNegate: true };
+    for ( const needle of safe.String_split.call(propsToMatch, /\s+/) ) {
+        let [ prop, pattern ] = safe.String_split.call(needle, ':');
+        if ( prop === '' ) { continue; }
+        if ( pattern !== undefined && /[^$\w -]/.test(prop) ) {
+            prop = `${prop}:${pattern}`;
+            pattern = undefined;
+        }
+        if ( pattern !== undefined ) {
+            needles.set(prop, safe.initPattern(pattern, options));
+        } else if ( implicit !== '' ) {
+            needles.set(implicit, safe.initPattern(prop, options));
+        }
+    }
+    return needles;
+}
+function matchObjectPropertiesFn(propNeedles, ...objs) {
+    const safe = safeSelf();
+    const matched = [];
+    for ( const obj of objs ) {
+        if ( obj instanceof Object === false ) { continue; }
+        for ( const [ prop, details ] of propNeedles ) {
+            let value = obj[prop];
+            if ( value === undefined ) { continue; }
+            if ( typeof value !== 'string' ) {
+                try { value = safe.JSON_stringify(value); }
+                catch { }
+                if ( typeof value !== 'string' ) { continue; }
+            }
+            if ( safe.testPattern(details, value) === false ) { return; }
+            matched.push(`${prop}: ${value}`);
+        }
+    }
+    return matched;
+}
+function safeSelf() {
+    if ( scriptletGlobals.safeSelf ) {
+        return scriptletGlobals.safeSelf;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'Object_toString': Object.prototype.toString,
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+        onIdle(fn, options) {
+            if ( self.requestIdleCallback ) {
+                return self.requestIdleCallback(fn, options);
+            }
+            return self.requestAnimationFrame(fn);
+        },
+        offIdle(id) {
+            if ( self.requestIdleCallback ) {
+                return self.cancelIdleCallback(id);
+            }
+            return self.cancelAnimationFrame(id);
+        }
+    };
+    scriptletGlobals.safeSelf = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function generateContentFn(trusted, directive) {
+    const safe = safeSelf();
+    const randomize = len => {
+        const chunks = [];
+        let textSize = 0;
+        do {
+            const s = safe.Math_random().toString(36).slice(2);
+            chunks.push(s);
+            textSize += s.length;
+        }
+        while ( textSize < len );
+        return chunks.join(' ').slice(0, len);
+    };
+    if ( directive === 'true' ) {
+        return randomize(10);
+    }
+    if ( directive === 'emptyObj' ) {
+        return '{}';
+    }
+    if ( directive === 'emptyArr' ) {
+        return '[]';
+    }
+    if ( directive === 'emptyStr' ) {
+        return '';
+    }
+    if ( directive.startsWith('length:') ) {
+        const match = /^length:(\d+)(?:-(\d+))?$/.exec(directive);
+        if ( match === null ) { return ''; }
+        const min = parseInt(match[1], 10);
+        const extent = safe.Math_max(parseInt(match[2], 10) || 0, min) - min;
+        const len = safe.Math_min(min + extent * safe.Math_random(), 500000);
+        return randomize(len | 0);
+    }
+    if ( directive.startsWith('war:') ) {
+        if ( scriptletGlobals.warOrigin === undefined ) { return ''; }
+        return new Promise(resolve => {
+            const warOrigin = scriptletGlobals.warOrigin;
+            const warName = directive.slice(4);
+            const fullpath = [ warOrigin, '/', warName ];
+            const warSecret = scriptletGlobals.warSecret;
+            if ( warSecret !== undefined ) {
+                fullpath.push('?secret=', warSecret);
+            }
+            const warXHR = new safe.XMLHttpRequest();
+            warXHR.responseType = 'text';
+            warXHR.onloadend = ev => {
+                resolve(ev.target.responseText || '');
+            };
+            warXHR.open('GET', fullpath.join(''));
+            warXHR.send();
+        }).catch(( ) => '');
+    }
+    if ( directive.startsWith('join:') ) {
+        const parts = directive.slice(7)
+                .split(directive.slice(5, 7))
+                .map(a => generateContentFn(trusted, a));
+        return parts.some(a => a instanceof Promise)
+            ? Promise.all(parts).then(parts => parts.join(''))
+            : parts.join('');
+    }
+    if ( trusted ) {
+        return directive;
+    }
+    return '';
+}
+function preventXhrFn(
+    trusted = false,
+    propsToMatch = '',
+    directive = ''
+) {
+    if ( typeof propsToMatch !== 'string' ) { return; }
+    const safe = safeSelf();
+    const scriptletName = trusted ? 'trusted-prevent-xhr' : 'prevent-xhr';
+    const logPrefix = safe.makeLogPrefix(scriptletName, propsToMatch, directive);
+    const xhrInstances = new WeakMap();
+    const propNeedles = parsePropertiesToMatchFn(propsToMatch, 'url');
+    const warOrigin = scriptletGlobals.warOrigin;
+    const safeDispatchEvent = (xhr, type) => {
+        try {
+            xhr.dispatchEvent(new Event(type));
+        } catch {
+        }
+    };
+    proxyApplyFn('XMLHttpRequest.prototype.open', function(context) {
+        const { thisArg, callArgs } = context;
+        xhrInstances.delete(thisArg);
+        const [ method, url, ...args ] = callArgs;
+        if ( warOrigin !== undefined && url.startsWith(warOrigin) ) {
+            return context.reflect();
+        }
+        const haystack = { method, url };
+        if ( propsToMatch === '' && directive === '' ) {
+            safe.uboLog(logPrefix, `Called: ${safe.JSON_stringify(haystack, null, 2)}`);
+            return context.reflect();
+        }
+        if ( matchObjectPropertiesFn(propNeedles, haystack) ) {
+            const xhrDetails = Object.assign(haystack, {
+                xhr: thisArg,
+                defer: args.length === 0 || !!args[0],
+                directive,
+                headers: {
+                    'date': '',
+                    'content-type': '',
+                    'content-length': '',
+                },
+                url: haystack.url,
+                props: {
+                    response: { value: '' },
+                    responseText: { value: '' },
+                    responseXML: { value: null },
+                },
+            });
+            xhrInstances.set(thisArg, xhrDetails);
+        }
+        return context.reflect();
+    });
+    proxyApplyFn('XMLHttpRequest.prototype.send', function(context) {
+        const { thisArg } = context;
+        const xhrDetails = xhrInstances.get(thisArg);
+        if ( xhrDetails === undefined ) {
+            return context.reflect();
+        }
+        xhrDetails.headers['date'] = (new Date()).toUTCString();
+        let xhrText = '';
+        switch ( thisArg.responseType ) {
+        case 'arraybuffer':
+            xhrDetails.props.response.value = new ArrayBuffer(0);
+            xhrDetails.headers['content-type'] = 'application/octet-stream';
+            break;
+        case 'blob':
+            xhrDetails.props.response.value = new Blob([]);
+            xhrDetails.headers['content-type'] = 'application/octet-stream';
+            break;
+        case 'document': {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString('', 'text/html');
+            xhrDetails.props.response.value = doc;
+            xhrDetails.props.responseXML.value = doc;
+            xhrDetails.headers['content-type'] = 'text/html';
+            break;
+        }
+        case 'json':
+            xhrDetails.props.response.value = {};
+            xhrDetails.props.responseText.value = '{}';
+            xhrDetails.headers['content-type'] = 'application/json';
+            break;
+        default: {
+            if ( directive === '' ) { break; }
+            xhrText = generateContentFn(trusted, xhrDetails.directive);
+            if ( xhrText instanceof Promise ) {
+                xhrText = xhrText.then(text => {
+                    xhrDetails.props.response.value = text;
+                    xhrDetails.props.responseText.value = text;
+                });
+            } else {
+                xhrDetails.props.response.value = xhrText;
+                xhrDetails.props.responseText.value = xhrText;
+            }
+            xhrDetails.headers['content-type'] = 'text/plain';
+            break;
+        }
+        }
+        if ( xhrDetails.defer === false ) {
+            xhrDetails.headers['content-length'] = `${xhrDetails.props.response.value}`.length;
+            Object.defineProperties(xhrDetails.xhr, {
+                readyState: { value: 4 },
+                responseURL: { value: xhrDetails.url },
+                status: { value: 200 },
+                statusText: { value: 'OK' },
+            });
+            Object.defineProperties(xhrDetails.xhr, xhrDetails.props);
+            return;
+        }
+        Promise.resolve(xhrText).then(( ) => xhrDetails).then(details => {
+            Object.defineProperties(details.xhr, {
+                readyState: { value: 1, configurable: true },
+                responseURL: { value: xhrDetails.url },
+            });
+            safeDispatchEvent(details.xhr, 'readystatechange');
+            return details;
+        }).then(details => {
+            xhrDetails.headers['content-length'] = `${details.props.response.value}`.length;
+            Object.defineProperties(details.xhr, {
+                readyState: { value: 2, configurable: true },
+                status: { value: 200 },
+                statusText: { value: 'OK' },
+            });
+            safeDispatchEvent(details.xhr, 'readystatechange');
+            return details;
+        }).then(details => {
+            Object.defineProperties(details.xhr, {
+                readyState: { value: 3, configurable: true },
+            });
+            Object.defineProperties(details.xhr, details.props);
+            safeDispatchEvent(details.xhr, 'readystatechange');
+            return details;
+        }).then(details => {
+            Object.defineProperties(details.xhr, {
+                readyState: { value: 4 },
+            });
+            safeDispatchEvent(details.xhr, 'readystatechange');
+            safeDispatchEvent(details.xhr, 'load');
+            safeDispatchEvent(details.xhr, 'loadend');
+            safe.uboLog(logPrefix, `Prevented with response:\n${details.xhr.response}`);
+        });
+    });
+    proxyApplyFn('XMLHttpRequest.prototype.getResponseHeader', function(context) {
+        const { thisArg } = context;
+        const xhrDetails = xhrInstances.get(thisArg);
+        if ( xhrDetails === undefined || thisArg.readyState < thisArg.HEADERS_RECEIVED ) {
+            return context.reflect();
+        }
+        const headerName = `${context.callArgs[0]}`;
+        const value = xhrDetails.headers[headerName.toLowerCase()];
+        if ( value !== undefined && value !== '' ) { return value; }
+        return null;
+    });
+    proxyApplyFn('XMLHttpRequest.prototype.getAllResponseHeaders', function(context) {
+        const { thisArg } = context;
+        const xhrDetails = xhrInstances.get(thisArg);
+        if ( xhrDetails === undefined || thisArg.readyState < thisArg.HEADERS_RECEIVED ) {
+            return context.reflect();
+        }
+        const out = [];
+        for ( const [ name, value ] of Object.entries(xhrDetails.headers) ) {
+            if ( !value ) { continue; }
+            out.push(`${name}: ${value}`);
+        }
+        if ( out.length !== 0 ) { out.push(''); }
+        return out.join('\r\n');
+    });
+}
+function preventXhr(...args) {
+    return preventXhrFn(false, ...args);
+};
+preventXhr(...args);
+},
+};
+
+
+scriptlets['trusted-prevent-xhr.js'] = {
+aliases: [],
+
+requiresTrust: false,
+func: function (scriptletGlobals = {}, ...args) {
+function proxyApplyFn(
+    target = '',
+    handler = ''
+) {
+    let context = globalThis;
+    let prop = target;
+    for (;;) {
+        const pos = prop.indexOf('.');
+        if ( pos === -1 ) { break; }
+        context = context[prop.slice(0, pos)];
+        if ( context instanceof Object === false ) { return; }
+        prop = prop.slice(pos+1);
+    }
+    const fn = context[prop];
+    if ( typeof fn !== 'function' ) { return; }
+    if ( proxyApplyFn.CtorContext === undefined ) {
+        proxyApplyFn.ctorContexts = [];
+        proxyApplyFn.CtorContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, callArgs) {
+                this.callFn = callFn;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.construct(this.callFn, this.callArgs);
+                this.callFn = this.callArgs = this.private = undefined;
+                proxyApplyFn.ctorContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.ctorContexts.length !== 0
+                    ? proxyApplyFn.ctorContexts.pop().init(...args)
+                    : new proxyApplyFn.CtorContext(...args);
+            }
+        };
+        proxyApplyFn.applyContexts = [];
+        proxyApplyFn.ApplyContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, thisArg, callArgs) {
+                this.callFn = callFn;
+                this.thisArg = thisArg;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.apply(this.callFn, this.thisArg, this.callArgs);
+                this.callFn = this.thisArg = this.callArgs = this.private = undefined;
+                proxyApplyFn.applyContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.applyContexts.length !== 0
+                    ? proxyApplyFn.applyContexts.pop().init(...args)
+                    : new proxyApplyFn.ApplyContext(...args);
+            }
+        };
+        proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
+    }
+    if ( proxyApplyFn.isCtor.has(target) === false ) {
+        proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
+    }
+    const proxyDetails = {
+        apply(target, thisArg, args) {
+            return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
+        }
+    };
+    if ( proxyApplyFn.isCtor.get(target) ) {
+        proxyDetails.construct = function(target, args) {
+            return handler(proxyApplyFn.CtorContext.factory(target, args));
+        };
+    }
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
+}
+function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
+    const safe = safeSelf();
+    const needles = new Map();
+    if ( propsToMatch === undefined || propsToMatch === '' ) { return needles; }
+    const options = { canNegate: true };
+    for ( const needle of safe.String_split.call(propsToMatch, /\s+/) ) {
+        let [ prop, pattern ] = safe.String_split.call(needle, ':');
+        if ( prop === '' ) { continue; }
+        if ( pattern !== undefined && /[^$\w -]/.test(prop) ) {
+            prop = `${prop}:${pattern}`;
+            pattern = undefined;
+        }
+        if ( pattern !== undefined ) {
+            needles.set(prop, safe.initPattern(pattern, options));
+        } else if ( implicit !== '' ) {
+            needles.set(implicit, safe.initPattern(prop, options));
+        }
+    }
+    return needles;
+}
+function matchObjectPropertiesFn(propNeedles, ...objs) {
+    const safe = safeSelf();
+    const matched = [];
+    for ( const obj of objs ) {
+        if ( obj instanceof Object === false ) { continue; }
+        for ( const [ prop, details ] of propNeedles ) {
+            let value = obj[prop];
+            if ( value === undefined ) { continue; }
+            if ( typeof value !== 'string' ) {
+                try { value = safe.JSON_stringify(value); }
+                catch { }
+                if ( typeof value !== 'string' ) { continue; }
+            }
+            if ( safe.testPattern(details, value) === false ) { return; }
+            matched.push(`${prop}: ${value}`);
+        }
+    }
+    return matched;
+}
+function safeSelf() {
+    if ( scriptletGlobals.safeSelf ) {
+        return scriptletGlobals.safeSelf;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'Object_toString': Object.prototype.toString,
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+        onIdle(fn, options) {
+            if ( self.requestIdleCallback ) {
+                return self.requestIdleCallback(fn, options);
+            }
+            return self.requestAnimationFrame(fn);
+        },
+        offIdle(id) {
+            if ( self.requestIdleCallback ) {
+                return self.cancelIdleCallback(id);
+            }
+            return self.cancelAnimationFrame(id);
+        }
+    };
+    scriptletGlobals.safeSelf = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function generateContentFn(trusted, directive) {
+    const safe = safeSelf();
+    const randomize = len => {
+        const chunks = [];
+        let textSize = 0;
+        do {
+            const s = safe.Math_random().toString(36).slice(2);
+            chunks.push(s);
+            textSize += s.length;
+        }
+        while ( textSize < len );
+        return chunks.join(' ').slice(0, len);
+    };
+    if ( directive === 'true' ) {
+        return randomize(10);
+    }
+    if ( directive === 'emptyObj' ) {
+        return '{}';
+    }
+    if ( directive === 'emptyArr' ) {
+        return '[]';
+    }
+    if ( directive === 'emptyStr' ) {
+        return '';
+    }
+    if ( directive.startsWith('length:') ) {
+        const match = /^length:(\d+)(?:-(\d+))?$/.exec(directive);
+        if ( match === null ) { return ''; }
+        const min = parseInt(match[1], 10);
+        const extent = safe.Math_max(parseInt(match[2], 10) || 0, min) - min;
+        const len = safe.Math_min(min + extent * safe.Math_random(), 500000);
+        return randomize(len | 0);
+    }
+    if ( directive.startsWith('war:') ) {
+        if ( scriptletGlobals.warOrigin === undefined ) { return ''; }
+        return new Promise(resolve => {
+            const warOrigin = scriptletGlobals.warOrigin;
+            const warName = directive.slice(4);
+            const fullpath = [ warOrigin, '/', warName ];
+            const warSecret = scriptletGlobals.warSecret;
+            if ( warSecret !== undefined ) {
+                fullpath.push('?secret=', warSecret);
+            }
+            const warXHR = new safe.XMLHttpRequest();
+            warXHR.responseType = 'text';
+            warXHR.onloadend = ev => {
+                resolve(ev.target.responseText || '');
+            };
+            warXHR.open('GET', fullpath.join(''));
+            warXHR.send();
+        }).catch(( ) => '');
+    }
+    if ( directive.startsWith('join:') ) {
+        const parts = directive.slice(7)
+                .split(directive.slice(5, 7))
+                .map(a => generateContentFn(trusted, a));
+        return parts.some(a => a instanceof Promise)
+            ? Promise.all(parts).then(parts => parts.join(''))
+            : parts.join('');
+    }
+    if ( trusted ) {
+        return directive;
+    }
+    return '';
+}
+function preventXhrFn(
+    trusted = false,
+    propsToMatch = '',
+    directive = ''
+) {
+    if ( typeof propsToMatch !== 'string' ) { return; }
+    const safe = safeSelf();
+    const scriptletName = trusted ? 'trusted-prevent-xhr' : 'prevent-xhr';
+    const logPrefix = safe.makeLogPrefix(scriptletName, propsToMatch, directive);
+    const xhrInstances = new WeakMap();
+    const propNeedles = parsePropertiesToMatchFn(propsToMatch, 'url');
+    const warOrigin = scriptletGlobals.warOrigin;
+    const safeDispatchEvent = (xhr, type) => {
+        try {
+            xhr.dispatchEvent(new Event(type));
+        } catch {
+        }
+    };
+    proxyApplyFn('XMLHttpRequest.prototype.open', function(context) {
+        const { thisArg, callArgs } = context;
+        xhrInstances.delete(thisArg);
+        const [ method, url, ...args ] = callArgs;
+        if ( warOrigin !== undefined && url.startsWith(warOrigin) ) {
+            return context.reflect();
+        }
+        const haystack = { method, url };
+        if ( propsToMatch === '' && directive === '' ) {
+            safe.uboLog(logPrefix, `Called: ${safe.JSON_stringify(haystack, null, 2)}`);
+            return context.reflect();
+        }
+        if ( matchObjectPropertiesFn(propNeedles, haystack) ) {
+            const xhrDetails = Object.assign(haystack, {
+                xhr: thisArg,
+                defer: args.length === 0 || !!args[0],
+                directive,
+                headers: {
+                    'date': '',
+                    'content-type': '',
+                    'content-length': '',
+                },
+                url: haystack.url,
+                props: {
+                    response: { value: '' },
+                    responseText: { value: '' },
+                    responseXML: { value: null },
+                },
+            });
+            xhrInstances.set(thisArg, xhrDetails);
+        }
+        return context.reflect();
+    });
+    proxyApplyFn('XMLHttpRequest.prototype.send', function(context) {
+        const { thisArg } = context;
+        const xhrDetails = xhrInstances.get(thisArg);
+        if ( xhrDetails === undefined ) {
+            return context.reflect();
+        }
+        xhrDetails.headers['date'] = (new Date()).toUTCString();
+        let xhrText = '';
+        switch ( thisArg.responseType ) {
+        case 'arraybuffer':
+            xhrDetails.props.response.value = new ArrayBuffer(0);
+            xhrDetails.headers['content-type'] = 'application/octet-stream';
+            break;
+        case 'blob':
+            xhrDetails.props.response.value = new Blob([]);
+            xhrDetails.headers['content-type'] = 'application/octet-stream';
+            break;
+        case 'document': {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString('', 'text/html');
+            xhrDetails.props.response.value = doc;
+            xhrDetails.props.responseXML.value = doc;
+            xhrDetails.headers['content-type'] = 'text/html';
+            break;
+        }
+        case 'json':
+            xhrDetails.props.response.value = {};
+            xhrDetails.props.responseText.value = '{}';
+            xhrDetails.headers['content-type'] = 'application/json';
+            break;
+        default: {
+            if ( directive === '' ) { break; }
+            xhrText = generateContentFn(trusted, xhrDetails.directive);
+            if ( xhrText instanceof Promise ) {
+                xhrText = xhrText.then(text => {
+                    xhrDetails.props.response.value = text;
+                    xhrDetails.props.responseText.value = text;
+                });
+            } else {
+                xhrDetails.props.response.value = xhrText;
+                xhrDetails.props.responseText.value = xhrText;
+            }
+            xhrDetails.headers['content-type'] = 'text/plain';
+            break;
+        }
+        }
+        if ( xhrDetails.defer === false ) {
+            xhrDetails.headers['content-length'] = `${xhrDetails.props.response.value}`.length;
+            Object.defineProperties(xhrDetails.xhr, {
+                readyState: { value: 4 },
+                responseURL: { value: xhrDetails.url },
+                status: { value: 200 },
+                statusText: { value: 'OK' },
+            });
+            Object.defineProperties(xhrDetails.xhr, xhrDetails.props);
+            return;
+        }
+        Promise.resolve(xhrText).then(( ) => xhrDetails).then(details => {
+            Object.defineProperties(details.xhr, {
+                readyState: { value: 1, configurable: true },
+                responseURL: { value: xhrDetails.url },
+            });
+            safeDispatchEvent(details.xhr, 'readystatechange');
+            return details;
+        }).then(details => {
+            xhrDetails.headers['content-length'] = `${details.props.response.value}`.length;
+            Object.defineProperties(details.xhr, {
+                readyState: { value: 2, configurable: true },
+                status: { value: 200 },
+                statusText: { value: 'OK' },
+            });
+            safeDispatchEvent(details.xhr, 'readystatechange');
+            return details;
+        }).then(details => {
+            Object.defineProperties(details.xhr, {
+                readyState: { value: 3, configurable: true },
+            });
+            Object.defineProperties(details.xhr, details.props);
+            safeDispatchEvent(details.xhr, 'readystatechange');
+            return details;
+        }).then(details => {
+            Object.defineProperties(details.xhr, {
+                readyState: { value: 4 },
+            });
+            safeDispatchEvent(details.xhr, 'readystatechange');
+            safeDispatchEvent(details.xhr, 'load');
+            safeDispatchEvent(details.xhr, 'loadend');
+            safe.uboLog(logPrefix, `Prevented with response:\n${details.xhr.response}`);
+        });
+    });
+    proxyApplyFn('XMLHttpRequest.prototype.getResponseHeader', function(context) {
+        const { thisArg } = context;
+        const xhrDetails = xhrInstances.get(thisArg);
+        if ( xhrDetails === undefined || thisArg.readyState < thisArg.HEADERS_RECEIVED ) {
+            return context.reflect();
+        }
+        const headerName = `${context.callArgs[0]}`;
+        const value = xhrDetails.headers[headerName.toLowerCase()];
+        if ( value !== undefined && value !== '' ) { return value; }
+        return null;
+    });
+    proxyApplyFn('XMLHttpRequest.prototype.getAllResponseHeaders', function(context) {
+        const { thisArg } = context;
+        const xhrDetails = xhrInstances.get(thisArg);
+        if ( xhrDetails === undefined || thisArg.readyState < thisArg.HEADERS_RECEIVED ) {
+            return context.reflect();
+        }
+        const out = [];
+        for ( const [ name, value ] of Object.entries(xhrDetails.headers) ) {
+            if ( !value ) { continue; }
+            out.push(`${name}: ${value}`);
+        }
+        if ( out.length !== 0 ) { out.push(''); }
+        return out.join('\r\n');
+    });
+}
+function trustedPreventXhr(...args) {
+    return preventXhrFn(true, ...args);
+};
+trustedPreventXhr(...args);
 },
 };
 
@@ -23392,27 +24870,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 class ArglistParser {
     constructor(separatorChar = ',', mustQuote = false) {
@@ -28811,481 +30300,6 @@ webrtcIf(...args);
 };
 
 
-scriptlets['prevent-xhr.js'] = {
-aliases: ["no-xhr-if.js"],
-
-requiresTrust: false,
-func: function (scriptletGlobals = {}, ...args) {
-function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
-    const safe = safeSelf();
-    const needles = new Map();
-    if ( propsToMatch === undefined || propsToMatch === '' ) { return needles; }
-    const options = { canNegate: true };
-    for ( const needle of safe.String_split.call(propsToMatch, /\s+/) ) {
-        let [ prop, pattern ] = safe.String_split.call(needle, ':');
-        if ( prop === '' ) { continue; }
-        if ( pattern !== undefined && /[^$\w -]/.test(prop) ) {
-            prop = `${prop}:${pattern}`;
-            pattern = undefined;
-        }
-        if ( pattern !== undefined ) {
-            needles.set(prop, safe.initPattern(pattern, options));
-        } else if ( implicit !== '' ) {
-            needles.set(implicit, safe.initPattern(prop, options));
-        }
-    }
-    return needles;
-}
-function matchObjectPropertiesFn(propNeedles, ...objs) {
-    const safe = safeSelf();
-    const matched = [];
-    for ( const obj of objs ) {
-        if ( obj instanceof Object === false ) { continue; }
-        for ( const [ prop, details ] of propNeedles ) {
-            let value = obj[prop];
-            if ( value === undefined ) { continue; }
-            if ( typeof value !== 'string' ) {
-                try { value = safe.JSON_stringify(value); }
-                catch { }
-                if ( typeof value !== 'string' ) { continue; }
-            }
-            if ( safe.testPattern(details, value) === false ) { return; }
-            matched.push(`${prop}: ${value}`);
-        }
-    }
-    return matched;
-}
-function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
-    }
-    const self = globalThis;
-    const safe = {
-        'Array_from': Array.from,
-        'Error': self.Error,
-        'Function_toStringFn': self.Function.prototype.toString,
-        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
-        'Math_floor': Math.floor,
-        'Math_max': Math.max,
-        'Math_min': Math.min,
-        'Math_random': Math.random,
-        'Object': Object,
-        'Object_defineProperty': Object.defineProperty.bind(Object),
-        'Object_defineProperties': Object.defineProperties.bind(Object),
-        'Object_fromEntries': Object.fromEntries.bind(Object),
-        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
-        'Object_hasOwn': Object.hasOwn.bind(Object),
-        'Object_toString': Object.prototype.toString,
-        'RegExp': self.RegExp,
-        'RegExp_test': self.RegExp.prototype.test,
-        'RegExp_exec': self.RegExp.prototype.exec,
-        'Request_clone': self.Request.prototype.clone,
-        'String': self.String,
-        'String_fromCharCode': String.fromCharCode,
-        'String_split': String.prototype.split,
-        'XMLHttpRequest': self.XMLHttpRequest,
-        'addEventListener': self.EventTarget.prototype.addEventListener,
-        'removeEventListener': self.EventTarget.prototype.removeEventListener,
-        'fetch': self.fetch,
-        'JSON': self.JSON,
-        'JSON_parseFn': self.JSON.parse,
-        'JSON_stringifyFn': self.JSON.stringify,
-        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
-        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
-        'log': console.log.bind(console),
-        // Properties
-        logLevel: 0,
-        // Methods
-        makeLogPrefix(...args) {
-            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
-        },
-        uboLog(...args) {
-            if ( this.sendToLogger === undefined ) { return; }
-            if ( args === undefined || args[0] === '' ) { return; }
-            return this.sendToLogger('info', ...args);
-            
-        },
-        uboErr(...args) {
-            if ( this.sendToLogger === undefined ) { return; }
-            if ( args === undefined || args[0] === '' ) { return; }
-            return this.sendToLogger('error', ...args);
-        },
-        escapeRegexChars(s) {
-            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        },
-        initPattern(pattern, options = {}) {
-            if ( pattern === '' ) {
-                return { matchAll: true, expect: true };
-            }
-            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
-            if ( expect === false ) {
-                pattern = pattern.slice(1);
-            }
-            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
-            if ( match !== null ) {
-                return {
-                    re: new this.RegExp(
-                        match[1],
-                        match[2] || options.flags
-                    ),
-                    expect,
-                };
-            }
-            if ( options.flags !== undefined ) {
-                return {
-                    re: new this.RegExp(this.escapeRegexChars(pattern),
-                        options.flags
-                    ),
-                    expect,
-                };
-            }
-            return { pattern, expect };
-        },
-        testPattern(details, haystack) {
-            if ( details.matchAll ) { return true; }
-            if ( details.re ) {
-                return this.RegExp_test.call(details.re, haystack) === details.expect;
-            }
-            return haystack.includes(details.pattern) === details.expect;
-        },
-        patternToRegex(pattern, flags = undefined, verbatim = false) {
-            if ( pattern === '' ) { return /^/; }
-            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
-            if ( match === null ) {
-                const reStr = this.escapeRegexChars(pattern);
-                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
-            }
-            try {
-                return new RegExp(match[1], match[2] || undefined);
-            }
-            catch {
-            }
-            return /^/;
-        },
-        getExtraArgs(args, offset = 0) {
-            const entries = args.slice(offset).reduce((out, v, i, a) => {
-                if ( (i & 1) === 0 ) {
-                    const rawValue = a[i+1];
-                    const value = /^\d+$/.test(rawValue)
-                        ? parseInt(rawValue, 10)
-                        : rawValue;
-                    out.push([ a[i], value ]);
-                }
-                return out;
-            }, []);
-            return this.Object_fromEntries(entries);
-        },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
-    };
-    scriptletGlobals.safeSelf = safe;
-    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
-    // This is executed only when the logger is opened
-    safe.logLevel = scriptletGlobals.logLevel || 1;
-    let lastLogType = '';
-    let lastLogText = '';
-    let lastLogTime = 0;
-    safe.toLogText = (type, ...args) => {
-        if ( args.length === 0 ) { return; }
-        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
-        if ( text === lastLogText && type === lastLogType ) {
-            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
-        }
-        lastLogType = type;
-        lastLogText = text;
-        lastLogTime = Date.now();
-        return text;
-    };
-    try {
-        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
-        let bcBuffer = [];
-        safe.sendToLogger = (type, ...args) => {
-            const text = safe.toLogText(type, ...args);
-            if ( text === undefined ) { return; }
-            if ( bcBuffer === undefined ) {
-                return bc.postMessage({ what: 'messageToLogger', type, text });
-            }
-            bcBuffer.push({ type, text });
-        };
-        bc.onmessage = ev => {
-            const msg = ev.data;
-            switch ( msg ) {
-            case 'iamready!':
-                if ( bcBuffer === undefined ) { break; }
-                bcBuffer.forEach(({ type, text }) =>
-                    bc.postMessage({ what: 'messageToLogger', type, text })
-                );
-                bcBuffer = undefined;
-                break;
-            case 'setScriptletLogLevelToOne':
-                safe.logLevel = 1;
-                break;
-            case 'setScriptletLogLevelToTwo':
-                safe.logLevel = 2;
-                break;
-            }
-        };
-        bc.postMessage('areyouready?');
-    } catch {
-        safe.sendToLogger = (type, ...args) => {
-            const text = safe.toLogText(type, ...args);
-            if ( text === undefined ) { return; }
-            safe.log(`uBO ${text}`);
-        };
-    }
-    return safe;
-}
-function generateContentFn(trusted, directive) {
-    const safe = safeSelf();
-    const randomize = len => {
-        const chunks = [];
-        let textSize = 0;
-        do {
-            const s = safe.Math_random().toString(36).slice(2);
-            chunks.push(s);
-            textSize += s.length;
-        }
-        while ( textSize < len );
-        return chunks.join(' ').slice(0, len);
-    };
-    if ( directive === 'true' ) {
-        return randomize(10);
-    }
-    if ( directive === 'emptyObj' ) {
-        return '{}';
-    }
-    if ( directive === 'emptyArr' ) {
-        return '[]';
-    }
-    if ( directive === 'emptyStr' ) {
-        return '';
-    }
-    if ( directive.startsWith('length:') ) {
-        const match = /^length:(\d+)(?:-(\d+))?$/.exec(directive);
-        if ( match === null ) { return ''; }
-        const min = parseInt(match[1], 10);
-        const extent = safe.Math_max(parseInt(match[2], 10) || 0, min) - min;
-        const len = safe.Math_min(min + extent * safe.Math_random(), 500000);
-        return randomize(len | 0);
-    }
-    if ( directive.startsWith('war:') ) {
-        if ( scriptletGlobals.warOrigin === undefined ) { return ''; }
-        return new Promise(resolve => {
-            const warOrigin = scriptletGlobals.warOrigin;
-            const warName = directive.slice(4);
-            const fullpath = [ warOrigin, '/', warName ];
-            const warSecret = scriptletGlobals.warSecret;
-            if ( warSecret !== undefined ) {
-                fullpath.push('?secret=', warSecret);
-            }
-            const warXHR = new safe.XMLHttpRequest();
-            warXHR.responseType = 'text';
-            warXHR.onloadend = ev => {
-                resolve(ev.target.responseText || '');
-            };
-            warXHR.open('GET', fullpath.join(''));
-            warXHR.send();
-        }).catch(( ) => '');
-    }
-    if ( trusted ) {
-        return directive;
-    }
-    return '';
-}
-function preventXhrFn(
-    trusted = false,
-    propsToMatch = '',
-    directive = ''
-) {
-    if ( typeof propsToMatch !== 'string' ) { return; }
-    const safe = safeSelf();
-    const scriptletName = trusted ? 'trusted-prevent-xhr' : 'prevent-xhr';
-    const logPrefix = safe.makeLogPrefix(scriptletName, propsToMatch, directive);
-    const xhrInstances = new WeakMap();
-    const propNeedles = parsePropertiesToMatchFn(propsToMatch, 'url');
-    const warOrigin = scriptletGlobals.warOrigin;
-    const safeDispatchEvent = (xhr, type) => {
-        try {
-            xhr.dispatchEvent(new Event(type));
-        } catch {
-        }
-    };
-    const XHRBefore = XMLHttpRequest.prototype;
-    self.XMLHttpRequest = class extends self.XMLHttpRequest {
-        open(method, url, ...args) {
-            xhrInstances.delete(this);
-            if ( warOrigin !== undefined && url.startsWith(warOrigin) ) {
-                return super.open(method, url, ...args);
-            }
-            const haystack = { method, url };
-            if ( propsToMatch === '' && directive === '' ) {
-                safe.uboLog(logPrefix, `Called: ${safe.JSON_stringify(haystack, null, 2)}`);
-                return super.open(method, url, ...args);
-            }
-            if ( matchObjectPropertiesFn(propNeedles, haystack) ) {
-                const xhrDetails = Object.assign(haystack, {
-                    xhr: this,
-                    defer: args.length === 0 || !!args[0],
-                    directive,
-                    headers: {
-                        'date': '',
-                        'content-type': '',
-                        'content-length': '',
-                    },
-                    url: haystack.url,
-                    props: {
-                        response: { value: '' },
-                        responseText: { value: '' },
-                        responseXML: { value: null },
-                    },
-                });
-                xhrInstances.set(this, xhrDetails);
-            }
-            return super.open(method, url, ...args);
-        }
-        send(...args) {
-            const xhrDetails = xhrInstances.get(this);
-            if ( xhrDetails === undefined ) {
-                return super.send(...args);
-            }
-            xhrDetails.headers['date'] = (new Date()).toUTCString();
-            let xhrText = '';
-            switch ( this.responseType ) {
-            case 'arraybuffer':
-                xhrDetails.props.response.value = new ArrayBuffer(0);
-                xhrDetails.headers['content-type'] = 'application/octet-stream';
-                break;
-            case 'blob':
-                xhrDetails.props.response.value = new Blob([]);
-                xhrDetails.headers['content-type'] = 'application/octet-stream';
-                break;
-            case 'document': {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString('', 'text/html');
-                xhrDetails.props.response.value = doc;
-                xhrDetails.props.responseXML.value = doc;
-                xhrDetails.headers['content-type'] = 'text/html';
-                break;
-            }
-            case 'json':
-                xhrDetails.props.response.value = {};
-                xhrDetails.props.responseText.value = '{}';
-                xhrDetails.headers['content-type'] = 'application/json';
-                break;
-            default: {
-                if ( directive === '' ) { break; }
-                xhrText = generateContentFn(trusted, xhrDetails.directive);
-                if ( xhrText instanceof Promise ) {
-                    xhrText = xhrText.then(text => {
-                        xhrDetails.props.response.value = text;
-                        xhrDetails.props.responseText.value = text;
-                    });
-                } else {
-                    xhrDetails.props.response.value = xhrText;
-                    xhrDetails.props.responseText.value = xhrText;
-                }
-                xhrDetails.headers['content-type'] = 'text/plain';
-                break;
-            }
-            }
-            if ( xhrDetails.defer === false ) {
-                xhrDetails.headers['content-length'] = `${xhrDetails.props.response.value}`.length;
-                Object.defineProperties(xhrDetails.xhr, {
-                    readyState: { value: 4 },
-                    responseURL: { value: xhrDetails.url },
-                    status: { value: 200 },
-                    statusText: { value: 'OK' },
-                });
-                Object.defineProperties(xhrDetails.xhr, xhrDetails.props);
-                return;
-            }
-            Promise.resolve(xhrText).then(( ) => xhrDetails).then(details => {
-                Object.defineProperties(details.xhr, {
-                    readyState: { value: 1, configurable: true },
-                    responseURL: { value: xhrDetails.url },
-                });
-                safeDispatchEvent(details.xhr, 'readystatechange');
-                return details;
-            }).then(details => {
-                xhrDetails.headers['content-length'] = `${details.props.response.value}`.length;
-                Object.defineProperties(details.xhr, {
-                    readyState: { value: 2, configurable: true },
-                    status: { value: 200 },
-                    statusText: { value: 'OK' },
-                });
-                safeDispatchEvent(details.xhr, 'readystatechange');
-                return details;
-            }).then(details => {
-                Object.defineProperties(details.xhr, {
-                    readyState: { value: 3, configurable: true },
-                });
-                Object.defineProperties(details.xhr, details.props);
-                safeDispatchEvent(details.xhr, 'readystatechange');
-                return details;
-            }).then(details => {
-                Object.defineProperties(details.xhr, {
-                    readyState: { value: 4 },
-                });
-                safeDispatchEvent(details.xhr, 'readystatechange');
-                safeDispatchEvent(details.xhr, 'load');
-                safeDispatchEvent(details.xhr, 'loadend');
-                safe.uboLog(logPrefix, `Prevented with response:\n${details.xhr.response}`);
-            });
-        }
-        getResponseHeader(headerName) {
-            const xhrDetails = xhrInstances.get(this);
-            if ( xhrDetails === undefined || this.readyState < this.HEADERS_RECEIVED ) {
-                return super.getResponseHeader(headerName);
-            }
-            const value = xhrDetails.headers[headerName.toLowerCase()];
-            if ( value !== undefined && value !== '' ) { return value; }
-            return null;
-        }
-        getAllResponseHeaders() {
-            const xhrDetails = xhrInstances.get(this);
-            if ( xhrDetails === undefined || this.readyState < this.HEADERS_RECEIVED ) {
-                return super.getAllResponseHeaders();
-            }
-            const out = [];
-            for ( const [ name, value ] of Object.entries(xhrDetails.headers) ) {
-                if ( !value ) { continue; }
-                out.push(`${name}: ${value}`);
-            }
-            if ( out.length !== 0 ) { out.push(''); }
-            return out.join('\r\n');
-        }
-    };
-    self.XMLHttpRequest.prototype.open.toString = function() {
-        return XHRBefore.open.toString();
-    };
-    self.XMLHttpRequest.prototype.send.toString = function() {
-        return XHRBefore.send.toString();
-    };
-    self.XMLHttpRequest.prototype.getResponseHeader.toString = function() {
-        return XHRBefore.getResponseHeader.toString();
-    };
-    self.XMLHttpRequest.prototype.getAllResponseHeaders.toString = function() {
-        return XHRBefore.getAllResponseHeaders.toString();
-    };
-}
-function preventXhr(...args) {
-    return preventXhrFn(false, ...args);
-};
-preventXhr(...args);
-},
-};
-
-
 scriptlets['prevent-window-open.js'] = {
 aliases: ["nowoif.js","no-window-open-if.js","window.open-defuser.js"],
 
@@ -29543,27 +30557,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function noWindowOpenIf(
     pattern = '',
@@ -30637,27 +31662,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function m3uPrune(
     m3uPattern = '',
@@ -33284,27 +34320,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function trustedReplaceOutboundText(
     propChain = '',
@@ -33419,27 +34466,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function safeSelf() {
     if ( scriptletGlobals.safeSelf ) {
@@ -33763,481 +34821,6 @@ trustedSuppressNativeMethod(...args);
 };
 
 
-scriptlets['trusted-prevent-xhr.js'] = {
-aliases: [],
-
-requiresTrust: true,
-func: function (scriptletGlobals = {}, ...args) {
-function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
-    const safe = safeSelf();
-    const needles = new Map();
-    if ( propsToMatch === undefined || propsToMatch === '' ) { return needles; }
-    const options = { canNegate: true };
-    for ( const needle of safe.String_split.call(propsToMatch, /\s+/) ) {
-        let [ prop, pattern ] = safe.String_split.call(needle, ':');
-        if ( prop === '' ) { continue; }
-        if ( pattern !== undefined && /[^$\w -]/.test(prop) ) {
-            prop = `${prop}:${pattern}`;
-            pattern = undefined;
-        }
-        if ( pattern !== undefined ) {
-            needles.set(prop, safe.initPattern(pattern, options));
-        } else if ( implicit !== '' ) {
-            needles.set(implicit, safe.initPattern(prop, options));
-        }
-    }
-    return needles;
-}
-function matchObjectPropertiesFn(propNeedles, ...objs) {
-    const safe = safeSelf();
-    const matched = [];
-    for ( const obj of objs ) {
-        if ( obj instanceof Object === false ) { continue; }
-        for ( const [ prop, details ] of propNeedles ) {
-            let value = obj[prop];
-            if ( value === undefined ) { continue; }
-            if ( typeof value !== 'string' ) {
-                try { value = safe.JSON_stringify(value); }
-                catch { }
-                if ( typeof value !== 'string' ) { continue; }
-            }
-            if ( safe.testPattern(details, value) === false ) { return; }
-            matched.push(`${prop}: ${value}`);
-        }
-    }
-    return matched;
-}
-function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
-    }
-    const self = globalThis;
-    const safe = {
-        'Array_from': Array.from,
-        'Error': self.Error,
-        'Function_toStringFn': self.Function.prototype.toString,
-        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
-        'Math_floor': Math.floor,
-        'Math_max': Math.max,
-        'Math_min': Math.min,
-        'Math_random': Math.random,
-        'Object': Object,
-        'Object_defineProperty': Object.defineProperty.bind(Object),
-        'Object_defineProperties': Object.defineProperties.bind(Object),
-        'Object_fromEntries': Object.fromEntries.bind(Object),
-        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
-        'Object_hasOwn': Object.hasOwn.bind(Object),
-        'Object_toString': Object.prototype.toString,
-        'RegExp': self.RegExp,
-        'RegExp_test': self.RegExp.prototype.test,
-        'RegExp_exec': self.RegExp.prototype.exec,
-        'Request_clone': self.Request.prototype.clone,
-        'String': self.String,
-        'String_fromCharCode': String.fromCharCode,
-        'String_split': String.prototype.split,
-        'XMLHttpRequest': self.XMLHttpRequest,
-        'addEventListener': self.EventTarget.prototype.addEventListener,
-        'removeEventListener': self.EventTarget.prototype.removeEventListener,
-        'fetch': self.fetch,
-        'JSON': self.JSON,
-        'JSON_parseFn': self.JSON.parse,
-        'JSON_stringifyFn': self.JSON.stringify,
-        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
-        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
-        'log': console.log.bind(console),
-        // Properties
-        logLevel: 0,
-        // Methods
-        makeLogPrefix(...args) {
-            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
-        },
-        uboLog(...args) {
-            if ( this.sendToLogger === undefined ) { return; }
-            if ( args === undefined || args[0] === '' ) { return; }
-            return this.sendToLogger('info', ...args);
-            
-        },
-        uboErr(...args) {
-            if ( this.sendToLogger === undefined ) { return; }
-            if ( args === undefined || args[0] === '' ) { return; }
-            return this.sendToLogger('error', ...args);
-        },
-        escapeRegexChars(s) {
-            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        },
-        initPattern(pattern, options = {}) {
-            if ( pattern === '' ) {
-                return { matchAll: true, expect: true };
-            }
-            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
-            if ( expect === false ) {
-                pattern = pattern.slice(1);
-            }
-            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
-            if ( match !== null ) {
-                return {
-                    re: new this.RegExp(
-                        match[1],
-                        match[2] || options.flags
-                    ),
-                    expect,
-                };
-            }
-            if ( options.flags !== undefined ) {
-                return {
-                    re: new this.RegExp(this.escapeRegexChars(pattern),
-                        options.flags
-                    ),
-                    expect,
-                };
-            }
-            return { pattern, expect };
-        },
-        testPattern(details, haystack) {
-            if ( details.matchAll ) { return true; }
-            if ( details.re ) {
-                return this.RegExp_test.call(details.re, haystack) === details.expect;
-            }
-            return haystack.includes(details.pattern) === details.expect;
-        },
-        patternToRegex(pattern, flags = undefined, verbatim = false) {
-            if ( pattern === '' ) { return /^/; }
-            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
-            if ( match === null ) {
-                const reStr = this.escapeRegexChars(pattern);
-                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
-            }
-            try {
-                return new RegExp(match[1], match[2] || undefined);
-            }
-            catch {
-            }
-            return /^/;
-        },
-        getExtraArgs(args, offset = 0) {
-            const entries = args.slice(offset).reduce((out, v, i, a) => {
-                if ( (i & 1) === 0 ) {
-                    const rawValue = a[i+1];
-                    const value = /^\d+$/.test(rawValue)
-                        ? parseInt(rawValue, 10)
-                        : rawValue;
-                    out.push([ a[i], value ]);
-                }
-                return out;
-            }, []);
-            return this.Object_fromEntries(entries);
-        },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
-    };
-    scriptletGlobals.safeSelf = safe;
-    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
-    // This is executed only when the logger is opened
-    safe.logLevel = scriptletGlobals.logLevel || 1;
-    let lastLogType = '';
-    let lastLogText = '';
-    let lastLogTime = 0;
-    safe.toLogText = (type, ...args) => {
-        if ( args.length === 0 ) { return; }
-        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
-        if ( text === lastLogText && type === lastLogType ) {
-            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
-        }
-        lastLogType = type;
-        lastLogText = text;
-        lastLogTime = Date.now();
-        return text;
-    };
-    try {
-        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
-        let bcBuffer = [];
-        safe.sendToLogger = (type, ...args) => {
-            const text = safe.toLogText(type, ...args);
-            if ( text === undefined ) { return; }
-            if ( bcBuffer === undefined ) {
-                return bc.postMessage({ what: 'messageToLogger', type, text });
-            }
-            bcBuffer.push({ type, text });
-        };
-        bc.onmessage = ev => {
-            const msg = ev.data;
-            switch ( msg ) {
-            case 'iamready!':
-                if ( bcBuffer === undefined ) { break; }
-                bcBuffer.forEach(({ type, text }) =>
-                    bc.postMessage({ what: 'messageToLogger', type, text })
-                );
-                bcBuffer = undefined;
-                break;
-            case 'setScriptletLogLevelToOne':
-                safe.logLevel = 1;
-                break;
-            case 'setScriptletLogLevelToTwo':
-                safe.logLevel = 2;
-                break;
-            }
-        };
-        bc.postMessage('areyouready?');
-    } catch {
-        safe.sendToLogger = (type, ...args) => {
-            const text = safe.toLogText(type, ...args);
-            if ( text === undefined ) { return; }
-            safe.log(`uBO ${text}`);
-        };
-    }
-    return safe;
-}
-function generateContentFn(trusted, directive) {
-    const safe = safeSelf();
-    const randomize = len => {
-        const chunks = [];
-        let textSize = 0;
-        do {
-            const s = safe.Math_random().toString(36).slice(2);
-            chunks.push(s);
-            textSize += s.length;
-        }
-        while ( textSize < len );
-        return chunks.join(' ').slice(0, len);
-    };
-    if ( directive === 'true' ) {
-        return randomize(10);
-    }
-    if ( directive === 'emptyObj' ) {
-        return '{}';
-    }
-    if ( directive === 'emptyArr' ) {
-        return '[]';
-    }
-    if ( directive === 'emptyStr' ) {
-        return '';
-    }
-    if ( directive.startsWith('length:') ) {
-        const match = /^length:(\d+)(?:-(\d+))?$/.exec(directive);
-        if ( match === null ) { return ''; }
-        const min = parseInt(match[1], 10);
-        const extent = safe.Math_max(parseInt(match[2], 10) || 0, min) - min;
-        const len = safe.Math_min(min + extent * safe.Math_random(), 500000);
-        return randomize(len | 0);
-    }
-    if ( directive.startsWith('war:') ) {
-        if ( scriptletGlobals.warOrigin === undefined ) { return ''; }
-        return new Promise(resolve => {
-            const warOrigin = scriptletGlobals.warOrigin;
-            const warName = directive.slice(4);
-            const fullpath = [ warOrigin, '/', warName ];
-            const warSecret = scriptletGlobals.warSecret;
-            if ( warSecret !== undefined ) {
-                fullpath.push('?secret=', warSecret);
-            }
-            const warXHR = new safe.XMLHttpRequest();
-            warXHR.responseType = 'text';
-            warXHR.onloadend = ev => {
-                resolve(ev.target.responseText || '');
-            };
-            warXHR.open('GET', fullpath.join(''));
-            warXHR.send();
-        }).catch(( ) => '');
-    }
-    if ( trusted ) {
-        return directive;
-    }
-    return '';
-}
-function preventXhrFn(
-    trusted = false,
-    propsToMatch = '',
-    directive = ''
-) {
-    if ( typeof propsToMatch !== 'string' ) { return; }
-    const safe = safeSelf();
-    const scriptletName = trusted ? 'trusted-prevent-xhr' : 'prevent-xhr';
-    const logPrefix = safe.makeLogPrefix(scriptletName, propsToMatch, directive);
-    const xhrInstances = new WeakMap();
-    const propNeedles = parsePropertiesToMatchFn(propsToMatch, 'url');
-    const warOrigin = scriptletGlobals.warOrigin;
-    const safeDispatchEvent = (xhr, type) => {
-        try {
-            xhr.dispatchEvent(new Event(type));
-        } catch {
-        }
-    };
-    const XHRBefore = XMLHttpRequest.prototype;
-    self.XMLHttpRequest = class extends self.XMLHttpRequest {
-        open(method, url, ...args) {
-            xhrInstances.delete(this);
-            if ( warOrigin !== undefined && url.startsWith(warOrigin) ) {
-                return super.open(method, url, ...args);
-            }
-            const haystack = { method, url };
-            if ( propsToMatch === '' && directive === '' ) {
-                safe.uboLog(logPrefix, `Called: ${safe.JSON_stringify(haystack, null, 2)}`);
-                return super.open(method, url, ...args);
-            }
-            if ( matchObjectPropertiesFn(propNeedles, haystack) ) {
-                const xhrDetails = Object.assign(haystack, {
-                    xhr: this,
-                    defer: args.length === 0 || !!args[0],
-                    directive,
-                    headers: {
-                        'date': '',
-                        'content-type': '',
-                        'content-length': '',
-                    },
-                    url: haystack.url,
-                    props: {
-                        response: { value: '' },
-                        responseText: { value: '' },
-                        responseXML: { value: null },
-                    },
-                });
-                xhrInstances.set(this, xhrDetails);
-            }
-            return super.open(method, url, ...args);
-        }
-        send(...args) {
-            const xhrDetails = xhrInstances.get(this);
-            if ( xhrDetails === undefined ) {
-                return super.send(...args);
-            }
-            xhrDetails.headers['date'] = (new Date()).toUTCString();
-            let xhrText = '';
-            switch ( this.responseType ) {
-            case 'arraybuffer':
-                xhrDetails.props.response.value = new ArrayBuffer(0);
-                xhrDetails.headers['content-type'] = 'application/octet-stream';
-                break;
-            case 'blob':
-                xhrDetails.props.response.value = new Blob([]);
-                xhrDetails.headers['content-type'] = 'application/octet-stream';
-                break;
-            case 'document': {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString('', 'text/html');
-                xhrDetails.props.response.value = doc;
-                xhrDetails.props.responseXML.value = doc;
-                xhrDetails.headers['content-type'] = 'text/html';
-                break;
-            }
-            case 'json':
-                xhrDetails.props.response.value = {};
-                xhrDetails.props.responseText.value = '{}';
-                xhrDetails.headers['content-type'] = 'application/json';
-                break;
-            default: {
-                if ( directive === '' ) { break; }
-                xhrText = generateContentFn(trusted, xhrDetails.directive);
-                if ( xhrText instanceof Promise ) {
-                    xhrText = xhrText.then(text => {
-                        xhrDetails.props.response.value = text;
-                        xhrDetails.props.responseText.value = text;
-                    });
-                } else {
-                    xhrDetails.props.response.value = xhrText;
-                    xhrDetails.props.responseText.value = xhrText;
-                }
-                xhrDetails.headers['content-type'] = 'text/plain';
-                break;
-            }
-            }
-            if ( xhrDetails.defer === false ) {
-                xhrDetails.headers['content-length'] = `${xhrDetails.props.response.value}`.length;
-                Object.defineProperties(xhrDetails.xhr, {
-                    readyState: { value: 4 },
-                    responseURL: { value: xhrDetails.url },
-                    status: { value: 200 },
-                    statusText: { value: 'OK' },
-                });
-                Object.defineProperties(xhrDetails.xhr, xhrDetails.props);
-                return;
-            }
-            Promise.resolve(xhrText).then(( ) => xhrDetails).then(details => {
-                Object.defineProperties(details.xhr, {
-                    readyState: { value: 1, configurable: true },
-                    responseURL: { value: xhrDetails.url },
-                });
-                safeDispatchEvent(details.xhr, 'readystatechange');
-                return details;
-            }).then(details => {
-                xhrDetails.headers['content-length'] = `${details.props.response.value}`.length;
-                Object.defineProperties(details.xhr, {
-                    readyState: { value: 2, configurable: true },
-                    status: { value: 200 },
-                    statusText: { value: 'OK' },
-                });
-                safeDispatchEvent(details.xhr, 'readystatechange');
-                return details;
-            }).then(details => {
-                Object.defineProperties(details.xhr, {
-                    readyState: { value: 3, configurable: true },
-                });
-                Object.defineProperties(details.xhr, details.props);
-                safeDispatchEvent(details.xhr, 'readystatechange');
-                return details;
-            }).then(details => {
-                Object.defineProperties(details.xhr, {
-                    readyState: { value: 4 },
-                });
-                safeDispatchEvent(details.xhr, 'readystatechange');
-                safeDispatchEvent(details.xhr, 'load');
-                safeDispatchEvent(details.xhr, 'loadend');
-                safe.uboLog(logPrefix, `Prevented with response:\n${details.xhr.response}`);
-            });
-        }
-        getResponseHeader(headerName) {
-            const xhrDetails = xhrInstances.get(this);
-            if ( xhrDetails === undefined || this.readyState < this.HEADERS_RECEIVED ) {
-                return super.getResponseHeader(headerName);
-            }
-            const value = xhrDetails.headers[headerName.toLowerCase()];
-            if ( value !== undefined && value !== '' ) { return value; }
-            return null;
-        }
-        getAllResponseHeaders() {
-            const xhrDetails = xhrInstances.get(this);
-            if ( xhrDetails === undefined || this.readyState < this.HEADERS_RECEIVED ) {
-                return super.getAllResponseHeaders();
-            }
-            const out = [];
-            for ( const [ name, value ] of Object.entries(xhrDetails.headers) ) {
-                if ( !value ) { continue; }
-                out.push(`${name}: ${value}`);
-            }
-            if ( out.length !== 0 ) { out.push(''); }
-            return out.join('\r\n');
-        }
-    };
-    self.XMLHttpRequest.prototype.open.toString = function() {
-        return XHRBefore.open.toString();
-    };
-    self.XMLHttpRequest.prototype.send.toString = function() {
-        return XHRBefore.send.toString();
-    };
-    self.XMLHttpRequest.prototype.getResponseHeader.toString = function() {
-        return XHRBefore.getResponseHeader.toString();
-    };
-    self.XMLHttpRequest.prototype.getAllResponseHeaders.toString = function() {
-        return XHRBefore.getAllResponseHeaders.toString();
-    };
-}
-function trustedPreventXhr(...args) {
-    return preventXhrFn(true, ...args);
-};
-trustedPreventXhr(...args);
-},
-};
-
-
 scriptlets['trusted-prevent-dom-bypass.js'] = {
 aliases: [],
 
@@ -34495,27 +35078,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function trustedPreventDomBypass(
     methodPath = '',
@@ -34870,27 +35464,38 @@ function proxyApplyFn(
             }
         };
         proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
     }
     if ( proxyApplyFn.isCtor.has(target) === false ) {
         proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
     }
-    const fnStr = fn.toString();
-    const toString = (function toString() { return fnStr; }).bind(null);
     const proxyDetails = {
         apply(target, thisArg, args) {
             return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        },
-        get(target, prop) {
-            if ( prop === 'toString' ) { return toString; }
-            return Reflect.get(target, prop);
-        },
+        }
     };
     if ( proxyApplyFn.isCtor.get(target) ) {
         proxyDetails.construct = function(target, args) {
             return handler(proxyApplyFn.CtorContext.factory(target, args));
         };
     }
-    context[prop] = new Proxy(fn, proxyDetails);
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
 }
 function trustedOverrideElementMethod(
     methodPath = '',
