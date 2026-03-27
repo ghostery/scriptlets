@@ -20113,7 +20113,7 @@ preventAddEventListener(...args);
 
 scriptlets['prevent-dialog.js'] = {
 aliases: [],
-
+world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
@@ -21369,6 +21369,252 @@ trustedPreventFetch(...args);
 };
 
 
+scriptlets['freeze-element-property.js'] = {
+aliases: [],
+
+requiresTrust: false,
+func: function (scriptletGlobals = {}, ...args) {
+function safeSelf() {
+    if ( scriptletGlobals.safeSelf ) {
+        return scriptletGlobals.safeSelf;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'Object_toString': Object.prototype.toString,
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+        onIdle(fn, options) {
+            if ( self.requestIdleCallback ) {
+                return self.requestIdleCallback(fn, options);
+            }
+            return self.requestAnimationFrame(fn);
+        },
+        offIdle(id) {
+            if ( self.requestIdleCallback ) {
+                return self.cancelIdleCallback(id);
+            }
+            return self.cancelAnimationFrame(id);
+        }
+    };
+    scriptletGlobals.safeSelf = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function freezeElementProperty(
+    property = '',
+    selector = '',
+    pattern = ''
+) {
+    const safe = safeSelf();
+    const logPrefix = safe.makeLogPrefix('freeze-element-property', property, selector, pattern);
+    const matcher = safe.initPattern(pattern, { canNegate: true });
+    const owner = (( ) => {
+        if ( Object.hasOwn(Element.prototype, property) ) {
+            return Element.prototype;
+        }
+        if ( Object.hasOwn(HTMLElement.prototype, property) ) {
+            return HTMLElement.prototype;
+        }
+        return null;
+    })();
+    if ( owner === null ) { return; }
+    const current = safe.Object_getOwnPropertyDescriptor(owner, property);
+    if ( current === undefined ) { return; }
+    const shouldPreventSet = (elem, a) => {
+        if ( selector !== '' ) {
+            if ( typeof elem.matches !== 'function' ) { return false; }
+            if ( elem.matches(selector) === false ) { return false; }
+        }
+        return safe.testPattern(matcher, `${a}`);
+    };
+    Object.defineProperty(owner, property, {
+        get: function() {
+            return current.get
+                ? current.get.call(this)
+                : current.value;
+        },
+        set: function(a) {
+            if ( shouldPreventSet(this, a) ) {
+                safe.uboLog(logPrefix, 'Assignment prevented');
+            } else if ( current.set ) {
+                current.set.call(this, a);
+            }
+            if ( safe.logLevel > 1 ) {
+                safe.uboLog(logPrefix, `Assigned:\n${a}`);
+            }
+            current.value = a;
+        },
+    });
+};
+freezeElementProperty(...args);
+},
+};
+
+
 scriptlets['prevent-innerHTML.js'] = {
 aliases: [],
 
@@ -21564,14 +21810,25 @@ function safeSelf() {
     }
     return safe;
 }
-function preventInnerHTML(
+function freezeElementProperty(
+    property = '',
     selector = '',
     pattern = ''
 ) {
     const safe = safeSelf();
-    const logPrefix = safe.makeLogPrefix('prevent-innerHTML', selector, pattern);
+    const logPrefix = safe.makeLogPrefix('freeze-element-property', property, selector, pattern);
     const matcher = safe.initPattern(pattern, { canNegate: true });
-    const current = safe.Object_getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+    const owner = (( ) => {
+        if ( Object.hasOwn(Element.prototype, property) ) {
+            return Element.prototype;
+        }
+        if ( Object.hasOwn(HTMLElement.prototype, property) ) {
+            return HTMLElement.prototype;
+        }
+        return null;
+    })();
+    if ( owner === null ) { return; }
+    const current = safe.Object_getOwnPropertyDescriptor(owner, property);
     if ( current === undefined ) { return; }
     const shouldPreventSet = (elem, a) => {
         if ( selector !== '' ) {
@@ -21580,7 +21837,7 @@ function preventInnerHTML(
         }
         return safe.testPattern(matcher, `${a}`);
     };
-    Object.defineProperty(Element.prototype, 'innerHTML', {
+    Object.defineProperty(owner, property, {
         get: function() {
             return current.get
                 ? current.get.call(this)
@@ -21588,7 +21845,7 @@ function preventInnerHTML(
         },
         set: function(a) {
             if ( shouldPreventSet(this, a) ) {
-                safe.uboLog(logPrefix, 'Prevented');
+                safe.uboLog(logPrefix, 'Assignment prevented');
             } else if ( current.set ) {
                 current.set.call(this, a);
             }
@@ -21598,15 +21855,21 @@ function preventInnerHTML(
             current.value = a;
         },
     });
+}
+function preventInnerHTML(
+    selector = '',
+    pattern = ''
+) {
+    freezeElementProperty('innerHTML', selector, pattern);
 };
 preventInnerHTML(...args);
 },
 };
 
 
-scriptlets['prevent-textContent.js'] = {
+scriptlets['prevent-navigation.js'] = {
 aliases: [],
-
+world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
@@ -21799,42 +22062,27 @@ function safeSelf() {
     }
     return safe;
 }
-function preventInnerHTML(
-    selector = '',
+function preventNavigation(
     pattern = ''
 ) {
     const safe = safeSelf();
-    const logPrefix = safe.makeLogPrefix('prevent-innerHTML', selector, pattern);
-    const matcher = safe.initPattern(pattern, { canNegate: true });
-    const current = safe.Object_getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
-    if ( current === undefined ) { return; }
-    const shouldPreventSet = (elem, a) => {
-        if ( selector !== '' ) {
-            if ( typeof elem.matches !== 'function' ) { return false; }
-            if ( elem.matches(selector) === false ) { return false; }
+    const logPrefix = safe.makeLogPrefix('prevent-navigation', pattern);
+    const needle = pattern === 'location.href' ? self.location.href : pattern;
+    const matcher = safe.initPattern(needle, { canNegate: true });
+    self.navigation.addEventListener('navigate', ev => {
+        if ( ev.userInitiated ) { return; }
+        const { url } = ev.destination;
+        if ( pattern === '' ) {
+            safe.uboLog(logPrefix, `Navigation to ${url}`);
+            return;
         }
-        return safe.testPattern(matcher, `${a}`);
-    };
-    Object.defineProperty(Element.prototype, 'innerHTML', {
-        get: function() {
-            return current.get
-                ? current.get.call(this)
-                : current.value;
-        },
-        set: function(a) {
-            if ( shouldPreventSet(this, a) ) {
-                safe.uboLog(logPrefix, 'Prevented');
-            } else if ( current.set ) {
-                current.set.call(this, a);
-            }
-            if ( safe.logLevel > 1 ) {
-                safe.uboLog(logPrefix, `Assigned:\n${a}`);
-            }
-            current.value = a;
-        },
+        if ( safe.testPattern(matcher, url) ) {
+            ev.preventDefault();
+            safe.uboLog(logPrefix, `Prevented navigation to ${url}`);
+        }
     });
 };
-preventInnerHTML(...args);
+preventNavigation(...args);
 },
 };
 
