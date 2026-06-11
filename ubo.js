@@ -246,18 +246,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -564,18 +552,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -774,18 +750,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -872,6 +836,18 @@ function runAt(fn, when) {
     const args = [ 'readystatechange', onStateChange, { capture: true } ];
     safe.addEventListener.apply(document, args);
 }
+function onIdleFn(fn, options) {
+    if ( self.requestIdleCallback ) {
+        return self.requestIdleCallback(fn, options);
+    }
+    return self.requestAnimationFrame(fn);
+}
+function offIdleFn(id) {
+    if ( self.requestIdleCallback ) {
+        return self.cancelIdleCallback(id);
+    }
+    return self.cancelAnimationFrame(id);
+}
 function removeAttr(
     rawToken = '',
     rawSelector = '',
@@ -892,14 +868,14 @@ function removeAttr(
     let timerId;
     const rmattrAsync = ( ) => {
         if ( timerId !== undefined ) { return; }
-        timerId = safe.onIdle(( ) => {
+        timerId = onIdleFn(( ) => {
             timerId = undefined;
             rmattr();
         }, { timeout: 17 });
     };
     const rmattr = ( ) => {
         if ( timerId !== undefined ) {
-            safe.offIdle(timerId);
+            offIdleFn(timerId);
             timerId = undefined;
         }
         try {
@@ -1073,18 +1049,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -1472,18 +1436,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -1570,6 +1522,12 @@ function runAt(fn, when) {
     const args = [ 'readystatechange', onStateChange, { capture: true } ];
     safe.addEventListener.apply(document, args);
 }
+function onIdleFn(fn, options) {
+    if ( self.requestIdleCallback ) {
+        return self.requestIdleCallback(fn, options);
+    }
+    return self.requestAnimationFrame(fn);
+}
 function hrefSanitizer(
     selector = '',
     source = ''
@@ -1652,7 +1610,7 @@ function hrefSanitizer(
             if ( shouldSanitize ) { break; }
         }
         if ( shouldSanitize === false ) { return; }
-        timer = safe.onIdle(( ) => {
+        timer = onIdleFn(( ) => {
             timer = undefined;
             sanitize();
         });
@@ -1797,18 +1755,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -1972,6 +1918,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -1984,14 +1934,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -2002,11 +1955,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -2047,8 +2001,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -2084,24 +2039,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -2132,18 +2094,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -2154,60 +2125,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -2236,7 +2216,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -2250,7 +2230,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -2259,12 +2239,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -2278,17 +2258,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -2320,22 +2307,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -2346,31 +2338,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -2386,9 +2373,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -2398,10 +2397,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -2572,18 +2570,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -2747,6 +2733,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -2759,14 +2749,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -2777,11 +2770,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -2822,8 +2816,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -2859,24 +2854,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -2907,18 +2909,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -2929,60 +2940,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -3011,7 +3031,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -3025,7 +3045,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -3034,12 +3054,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -3053,17 +3073,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -3095,22 +3122,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -3121,31 +3153,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -3161,9 +3188,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -3173,10 +3212,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -3347,18 +3385,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -3522,6 +3548,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -3534,14 +3564,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -3552,11 +3585,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -3597,8 +3631,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -3634,24 +3669,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -3682,18 +3724,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -3704,60 +3755,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -3786,7 +3846,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -3800,7 +3860,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -3809,12 +3869,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -3828,17 +3888,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -3870,22 +3937,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -3896,31 +3968,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -3936,9 +4003,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -3948,10 +4027,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -4122,18 +4200,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -4297,6 +4363,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -4309,14 +4379,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -4327,11 +4400,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -4372,8 +4446,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -4409,24 +4484,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -4457,18 +4539,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -4479,60 +4570,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -4561,7 +4661,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -4575,7 +4675,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -4584,12 +4684,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -4603,17 +4703,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -4645,22 +4752,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -4671,31 +4783,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -4711,9 +4818,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -4723,10 +4842,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -4897,18 +5015,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -5072,6 +5178,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -5084,14 +5194,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -5102,11 +5215,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -5147,8 +5261,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -5184,24 +5299,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -5232,18 +5354,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -5254,60 +5385,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -5336,7 +5476,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -5350,7 +5490,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -5359,12 +5499,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -5378,17 +5518,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -5420,22 +5567,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -5446,31 +5598,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -5486,9 +5633,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -5498,10 +5657,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -5699,18 +5857,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -5874,6 +6020,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -5886,14 +6036,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -5904,11 +6057,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -5949,8 +6103,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -5986,24 +6141,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -6034,18 +6196,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -6056,60 +6227,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -6138,7 +6318,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -6152,7 +6332,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -6161,12 +6341,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -6180,17 +6360,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -6222,22 +6409,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -6248,31 +6440,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -6288,9 +6475,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -6300,10 +6499,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -6372,6 +6570,3346 @@ function trustedEditInboundObject(propChain = '', argPos = '', jsonq = '') {
     editInboundObjectFn(true, propChain, argPos, jsonq);
 };
 trustedEditInboundObject(...args);
+},
+};
+
+
+scriptlets['edit-this-object.js'] = {
+aliases: [],
+
+requiresTrust: false,
+func: function (scriptletGlobals = {}, ...args) {
+function safeSelf() {
+    if ( scriptletGlobals.safeSelf ) {
+        return scriptletGlobals.safeSelf;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'Object_toString': Object.prototype.toString,
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+    };
+    scriptletGlobals.safeSelf = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function proxyApplyFn(
+    target = '',
+    handler = ''
+) {
+    let context = globalThis;
+    let prop = target;
+    for (;;) {
+        const pos = prop.indexOf('.');
+        if ( pos === -1 ) { break; }
+        context = context[prop.slice(0, pos)];
+        if ( context instanceof Object === false ) { return; }
+        prop = prop.slice(pos+1);
+    }
+    const fn = context[prop];
+    if ( typeof fn !== 'function' ) { return; }
+    if ( proxyApplyFn.CtorContext === undefined ) {
+        proxyApplyFn.ctorContexts = [];
+        proxyApplyFn.CtorContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, callArgs) {
+                this.callFn = callFn;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.construct(this.callFn, this.callArgs);
+                this.callFn = this.callArgs = this.private = undefined;
+                proxyApplyFn.ctorContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.ctorContexts.length !== 0
+                    ? proxyApplyFn.ctorContexts.pop().init(...args)
+                    : new proxyApplyFn.CtorContext(...args);
+            }
+        };
+        proxyApplyFn.applyContexts = [];
+        proxyApplyFn.ApplyContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, thisArg, callArgs) {
+                this.callFn = callFn;
+                this.thisArg = thisArg;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.apply(this.callFn, this.thisArg, this.callArgs);
+                this.callFn = this.thisArg = this.callArgs = this.private = undefined;
+                proxyApplyFn.applyContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.applyContexts.length !== 0
+                    ? proxyApplyFn.applyContexts.pop().init(...args)
+                    : new proxyApplyFn.ApplyContext(...args);
+            }
+        };
+        proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
+    }
+    if ( proxyApplyFn.isCtor.has(target) === false ) {
+        proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
+    }
+    const proxyDetails = {
+        apply(target, thisArg, args) {
+            return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
+        }
+    };
+    if ( proxyApplyFn.isCtor.get(target) ) {
+        proxyDetails.construct = function(target, args) {
+            return handler(proxyApplyFn.CtorContext.factory(target, args));
+        };
+    }
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
+}
+class JSONPath {
+    static create(query) {
+        const jsonp = new JSONPath();
+        jsonp.compile(query);
+        return jsonp;
+    }
+    static toJSON(obj, stringifier, ...args) {
+        return (stringifier || JSON.stringify)(obj, ...args)
+            .replace(/\//g, '\\/');
+    }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
+    get value() {
+        return this.#compiled && this.#compiled.rval;
+    }
+    set value(v) {
+        if ( this.#compiled === undefined ) { return; }
+        this.#compiled.rval = v;
+    }
+    get valid() {
+        return this.#compiled !== undefined;
+    }
+    compile(query) {
+        this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
+        const r = this.#compile(query, 0);
+        if ( r === undefined ) { return; }
+        if ( r.i !== query.length ) {
+            let val;
+            if ( query.startsWith('=', r.i) ) {
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
+                } else {
+                    val = query.slice(r.i+1);
+                }
+            } else if ( query.startsWith('+=', r.i) ) {
+                r.modify = '+';
+                val = query.slice(r.i+2);
+            }
+            try { r.rval = JSON.parse(val); }
+            catch { return; }
+        }
+        r.v2 = v2;
+        this.#compiled = r;
+    }
+    evaluate(root) {
+        if ( this.valid === false ) { return []; }
+        this.#root = { '$': root };
+        const paths = this.#evaluate(this.#compiled.steps, []);
+        this.#root = null;
+        return paths;
+    }
+    apply(root) {
+        if ( this.valid === false ) { return; }
+        const { rval } = this.#compiled;
+        this.#root = { '$': root };
+        const paths = this.#evaluate(this.#compiled.steps, []);
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
+        while ( i-- ) {
+            const { obj, key } = this.#resolvePath(paths[i]);
+            if ( rval !== undefined ) {
+                this.#modifyVal(obj, key);
+            } else if ( Array.isArray(obj) && typeof key === 'number' ) {
+                obj.splice(key, 1);
+            } else {
+                delete obj[key];
+            }
+        }
+        const result = this.#root['$'] ?? null;
+        this.#root = null;
+        return result;
+    }
+    dump() {
+        return JSON.stringify(this.#compiled);
+    }
+    toJSON(obj, ...args) {
+        return JSONPath.toJSON(obj, null, ...args)
+    }
+    get [Symbol.toStringTag]() {
+        return 'JSONPath';
+    }
+    #UNDEFINED = 0;
+    #ROOT = 1;
+    #CURRENT = 2;
+    #CHILDREN = 3;
+    #DESCENDANTS = 4;
+    #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
+    #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
+    #root;
+    #compiled;
+    #compile(query, i) {
+        if ( query.length === 0 ) { return; }
+        const steps = [];
+        let c = query.charCodeAt(i);
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
+        let mv = this.#UNDEFINED;
+        for (;;) {
+            if ( i === query.length ) { break; }
+            c = query.charCodeAt(i);
+            if ( c === 0x20 /* whitespace */ ) {
+                i += 1;
+                continue;
+            }
+            // Dot accessor syntax
+            if ( c === 0x2E /* . */ ) {
+                if ( mv !== this.#UNDEFINED ) { return; }
+                if ( query.startsWith('..', i) ) {
+                    mv = this.#DESCENDANTS;
+                    i += 2;
+                } else {
+                    mv = this.#CHILDREN;
+                    i += 1;
+                }
+                continue;
+            }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            if ( c !== 0x5B /* [ */ ) {
+                if ( mv === this.#UNDEFINED ) {
+                    const step = steps.at(-1);
+                    if ( step === undefined ) { return; }
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
+                    break;
+                }
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            // Bracket accessor syntax
+            if ( query.startsWith('[?', i) ) {
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
+                const r = this.#compile(query, j);
+                if ( r === undefined ) { return; }
+                if ( query.startsWith(']', r.i) === false ) { return; }
+                if ( not ) { r.steps.at(-1).not = true; }
+                steps.push({ mv: mv || this.#CHILDREN, steps: r.steps });
+                i = r.i + 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            if ( query.startsWith('[*]', i) ) {
+                mv ||= this.#CHILDREN;
+                steps.push({ mv, k: '*' });
+                i += 3;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            const r = this.#consumeIdentifier(query, i+1);
+            if ( r === undefined ) { return; }
+            mv ||= this.#CHILDREN;
+            steps.push({ mv, k: r.s });
+            i = r.i + 1;
+            mv = this.#UNDEFINED;
+        }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
+        return { steps, i };
+    }
+    #evaluate(steps, pathin) {
+        let resultset = [];
+        if ( Array.isArray(steps) === false ) { return resultset; }
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
+            switch ( step.mv ) {
+            case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
+                resultset = [ [ '$' ] ];
+                break;
+            case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
+                resultset = [ pathin ];
+                break;
+            case this.#CHILDREN:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
+                resultset = this.#getMatches(resultset, step);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+        return resultset;
+    }
+    #getMatches(listin, step) {
+        const listout = [];
+        for ( const pathin of listin ) {
+            const { value: owner } = this.#resolvePath(pathin);
+            if ( step.steps ) {
+                this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
+            }
+        }
+        return listout;
+    }
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
+            }
+            return out;
+        }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
+    }
+    #getMatchesFromExpr(pathin, step, owner, out) {
+        const recursive = step.mv === this.#DESCENDANTS;
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
+            const r = this.#evaluate(step.steps, q);
+            if ( Boolean(r?.length) === false ) { continue; }
+            out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
+        }
+    }
+    #getDescendants(v, recursive) {
+        const iterator = {
+            next() {
+                const n = this.stack.length;
+                if ( n === 0 ) {
+                    this.value = undefined;
+                    this.done = true;
+                    return this;
+                }
+                const details = this.stack[n-1];
+                const entry = details.keys.next();
+                if ( entry.done ) {
+                    this.stack.pop();
+                    this.path.pop();
+                    return this.next();
+                }
+                this.path[n-1] = entry.value;
+                this.value = {
+                    obj: details.obj,
+                    key: entry.value,
+                    path: this.path.slice(),
+                };
+                const v = this.value.obj[this.value.key];
+                if ( recursive ) {
+                    if ( Array.isArray(v) ) {
+                        this.stack.push({ obj: v, keys: v.keys() });
+                    } else if ( typeof v === 'object' && v !== null ) {
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
+                    }
+                }
+                return this;
+            },
+            path: [],
+            value: undefined,
+            done: false,
+            stack: [],
+            [Symbol.iterator]() { return this; },
+        };
+        if ( Array.isArray(v) ) {
+            iterator.stack.push({ obj: v, keys: v.keys() });
+        } else if ( typeof v === 'object' && v !== null ) {
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
+        }
+        return iterator;
+    }
+    #consumeIdentifier(query, i) {
+        const keys = [];
+        for (;;) {
+            const c0 = query.charCodeAt(i);
+            if ( c0 === 0x5D /* ] */ ) { break; }
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+                i += 1;
+                continue;
+            }
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
+                if ( r === undefined ) { return; }
+                keys.push(r.s);
+                i = r.i;
+                continue;
+            }
+            if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
+                const match = this.#reIndice.exec(query.slice(i));
+                if ( match === null ) { return; }
+                const indice = parseInt(query.slice(i), 10);
+                keys.push(indice);
+                i += match[0].length;
+                continue;
+            }
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
+        }
+        return { s: keys.length === 1 ? keys[0] : keys, i };
+    }
+    #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
+        const match = this.#reUnquotedIdentifier.exec(query.slice(i));
+        if ( match === null ) { return; }
+        return { s: match[0], i: i + match[0].length };
+    }
+    #untilChar(query, targetCharCode, i) {
+        const len = query.length;
+        const parts = [];
+        let beg = i, end = i;
+        for (;;) {
+            if ( end === len ) { return; }
+            const c = query.charCodeAt(end);
+            if ( c === targetCharCode ) {
+                parts.push(query.slice(beg, end));
+                end += 1;
+                break;
+            }
+            if ( c === 0x5C /* \ */ && (end+1) < len ) {
+                const d = query.charCodeAt(end+1);
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
+                    end += 1;
+                    beg = end;
+                }
+            }
+            end += 1;
+        }
+        return { s: parts.join(''), i: end };
+    }
+    #compileExpr(query, step, i) {
+        if ( query.startsWith('=/', i) ) {
+            const r = this.#untilChar(query, 0x2F /* / */, i+2);
+            if ( r === undefined ) { return i; }
+            const match = /^[i]/.exec(query.slice(r.i));
+            try {
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
+            step.op = 're';
+            if ( match ) { r.i += match[0].length; }
+            return r.i;
+        }
+        const match = this.#reExpr.exec(query.slice(i));
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
+        }
+        return i + match[0].length - 1;
+    }
+    #resolvePath(path) {
+        if ( path.length === 0 ) { return { value: this.#root }; }
+        const key = path.at(-1);
+        let obj = this.#root
+        for ( let i = 0, n = path.length-1; i < n; i++ ) {
+            obj = obj[path[i]];
+        }
+        return { obj, key, value: obj[key] };
+    }
+    #evaluateExpr(step, owner, k) {
+        if ( owner === undefined || owner === null ) { return; }
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
+        if ( step.op !== undefined && hasOwn === false ) { return; }
+        const target = step.not !== true;
+        const v = owner[k];
+        switch ( step.op ) {
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
+        }
+        return hasOwn === target;
+    }
+    #modifyVal(obj, key) {
+        let { modify, rval } = this.#compiled;
+        if ( typeof rval === 'string' ) {
+            rval = rval.replace('${now}', `${Date.now()}`);
+        }
+        switch ( modify ) {
+        case undefined:
+            obj[key] = rval;
+            break;
+        case '+': {
+            if ( rval instanceof Object === false ) { return; }
+            const lval = obj[key];
+            if ( lval instanceof Object === false ) { return; }
+            if ( Array.isArray(lval) ) { return; }
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
+                lval[k] = v;
+            }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
+            break;
+        }
+        case 'repl': {
+            const lval = obj[key];
+            if ( typeof lval !== 'string' ) { return; }
+            if ( this.#compiled.re === undefined ) {
+                this.#compiled.re = null;
+                try {
+                    this.#compiled.re = rval.regex !== undefined
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
+            }
+            if ( this.#compiled.re === null ) { return; }
+            obj[key] = lval.replace(this.#compiled.re, rval.replacement);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+function editThisObjectFn(
+    trusted = false,
+    propChain = '',
+    jsonq = '',
+    order = ''
+) {
+    if ( propChain === '' ) { return; }
+    const safe = safeSelf();
+    const logPrefix = safe.makeLogPrefix(
+        `${trusted ? 'trusted-' : ''}edit-this-object`,
+        propChain,
+        jsonq
+    );
+    const jsonp = JSONPath.create(jsonq);
+    if ( jsonp.valid === false || jsonp.value !== undefined && trusted !== true ) {
+        return safe.uboLog(logPrefix, 'Bad JSONPath query');
+    }
+    const editObj = objBefore => {
+        const objAfter = jsonp.apply(objBefore);
+        if ( objAfter === undefined ) { return; }
+        safe.uboLog(logPrefix, 'Edited');
+        if ( safe.logLevel <= 1 ) { return; }
+        safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(objAfter, null, 2)}`);
+    };
+    proxyApplyFn(propChain, function(context) {
+        const { thisArg } = context;
+        let r;
+        if ( order === 'after' ) {
+            r = context.reflect();
+        }
+        editObj(thisArg);
+        if ( order !== 'after' ) {
+            r = context.reflect();
+        }
+        return r;
+    });
+}
+function editThisObject(...args) {
+    editThisObjectFn(false, ...args);
+};
+editThisObject(...args);
+},
+};
+
+
+scriptlets['trusted-edit-this-object.js'] = {
+aliases: [],
+
+requiresTrust: true,
+func: function (scriptletGlobals = {}, ...args) {
+function safeSelf() {
+    if ( scriptletGlobals.safeSelf ) {
+        return scriptletGlobals.safeSelf;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'Object_toString': Object.prototype.toString,
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+    };
+    scriptletGlobals.safeSelf = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function proxyApplyFn(
+    target = '',
+    handler = ''
+) {
+    let context = globalThis;
+    let prop = target;
+    for (;;) {
+        const pos = prop.indexOf('.');
+        if ( pos === -1 ) { break; }
+        context = context[prop.slice(0, pos)];
+        if ( context instanceof Object === false ) { return; }
+        prop = prop.slice(pos+1);
+    }
+    const fn = context[prop];
+    if ( typeof fn !== 'function' ) { return; }
+    if ( proxyApplyFn.CtorContext === undefined ) {
+        proxyApplyFn.ctorContexts = [];
+        proxyApplyFn.CtorContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, callArgs) {
+                this.callFn = callFn;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.construct(this.callFn, this.callArgs);
+                this.callFn = this.callArgs = this.private = undefined;
+                proxyApplyFn.ctorContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.ctorContexts.length !== 0
+                    ? proxyApplyFn.ctorContexts.pop().init(...args)
+                    : new proxyApplyFn.CtorContext(...args);
+            }
+        };
+        proxyApplyFn.applyContexts = [];
+        proxyApplyFn.ApplyContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, thisArg, callArgs) {
+                this.callFn = callFn;
+                this.thisArg = thisArg;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.apply(this.callFn, this.thisArg, this.callArgs);
+                this.callFn = this.thisArg = this.callArgs = this.private = undefined;
+                proxyApplyFn.applyContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.applyContexts.length !== 0
+                    ? proxyApplyFn.applyContexts.pop().init(...args)
+                    : new proxyApplyFn.ApplyContext(...args);
+            }
+        };
+        proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
+    }
+    if ( proxyApplyFn.isCtor.has(target) === false ) {
+        proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
+    }
+    const proxyDetails = {
+        apply(target, thisArg, args) {
+            return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
+        }
+    };
+    if ( proxyApplyFn.isCtor.get(target) ) {
+        proxyDetails.construct = function(target, args) {
+            return handler(proxyApplyFn.CtorContext.factory(target, args));
+        };
+    }
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
+}
+class JSONPath {
+    static create(query) {
+        const jsonp = new JSONPath();
+        jsonp.compile(query);
+        return jsonp;
+    }
+    static toJSON(obj, stringifier, ...args) {
+        return (stringifier || JSON.stringify)(obj, ...args)
+            .replace(/\//g, '\\/');
+    }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
+    get value() {
+        return this.#compiled && this.#compiled.rval;
+    }
+    set value(v) {
+        if ( this.#compiled === undefined ) { return; }
+        this.#compiled.rval = v;
+    }
+    get valid() {
+        return this.#compiled !== undefined;
+    }
+    compile(query) {
+        this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
+        const r = this.#compile(query, 0);
+        if ( r === undefined ) { return; }
+        if ( r.i !== query.length ) {
+            let val;
+            if ( query.startsWith('=', r.i) ) {
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
+                } else {
+                    val = query.slice(r.i+1);
+                }
+            } else if ( query.startsWith('+=', r.i) ) {
+                r.modify = '+';
+                val = query.slice(r.i+2);
+            }
+            try { r.rval = JSON.parse(val); }
+            catch { return; }
+        }
+        r.v2 = v2;
+        this.#compiled = r;
+    }
+    evaluate(root) {
+        if ( this.valid === false ) { return []; }
+        this.#root = { '$': root };
+        const paths = this.#evaluate(this.#compiled.steps, []);
+        this.#root = null;
+        return paths;
+    }
+    apply(root) {
+        if ( this.valid === false ) { return; }
+        const { rval } = this.#compiled;
+        this.#root = { '$': root };
+        const paths = this.#evaluate(this.#compiled.steps, []);
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
+        while ( i-- ) {
+            const { obj, key } = this.#resolvePath(paths[i]);
+            if ( rval !== undefined ) {
+                this.#modifyVal(obj, key);
+            } else if ( Array.isArray(obj) && typeof key === 'number' ) {
+                obj.splice(key, 1);
+            } else {
+                delete obj[key];
+            }
+        }
+        const result = this.#root['$'] ?? null;
+        this.#root = null;
+        return result;
+    }
+    dump() {
+        return JSON.stringify(this.#compiled);
+    }
+    toJSON(obj, ...args) {
+        return JSONPath.toJSON(obj, null, ...args)
+    }
+    get [Symbol.toStringTag]() {
+        return 'JSONPath';
+    }
+    #UNDEFINED = 0;
+    #ROOT = 1;
+    #CURRENT = 2;
+    #CHILDREN = 3;
+    #DESCENDANTS = 4;
+    #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
+    #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
+    #root;
+    #compiled;
+    #compile(query, i) {
+        if ( query.length === 0 ) { return; }
+        const steps = [];
+        let c = query.charCodeAt(i);
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
+        let mv = this.#UNDEFINED;
+        for (;;) {
+            if ( i === query.length ) { break; }
+            c = query.charCodeAt(i);
+            if ( c === 0x20 /* whitespace */ ) {
+                i += 1;
+                continue;
+            }
+            // Dot accessor syntax
+            if ( c === 0x2E /* . */ ) {
+                if ( mv !== this.#UNDEFINED ) { return; }
+                if ( query.startsWith('..', i) ) {
+                    mv = this.#DESCENDANTS;
+                    i += 2;
+                } else {
+                    mv = this.#CHILDREN;
+                    i += 1;
+                }
+                continue;
+            }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            if ( c !== 0x5B /* [ */ ) {
+                if ( mv === this.#UNDEFINED ) {
+                    const step = steps.at(-1);
+                    if ( step === undefined ) { return; }
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
+                    break;
+                }
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            // Bracket accessor syntax
+            if ( query.startsWith('[?', i) ) {
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
+                const r = this.#compile(query, j);
+                if ( r === undefined ) { return; }
+                if ( query.startsWith(']', r.i) === false ) { return; }
+                if ( not ) { r.steps.at(-1).not = true; }
+                steps.push({ mv: mv || this.#CHILDREN, steps: r.steps });
+                i = r.i + 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            if ( query.startsWith('[*]', i) ) {
+                mv ||= this.#CHILDREN;
+                steps.push({ mv, k: '*' });
+                i += 3;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            const r = this.#consumeIdentifier(query, i+1);
+            if ( r === undefined ) { return; }
+            mv ||= this.#CHILDREN;
+            steps.push({ mv, k: r.s });
+            i = r.i + 1;
+            mv = this.#UNDEFINED;
+        }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
+        return { steps, i };
+    }
+    #evaluate(steps, pathin) {
+        let resultset = [];
+        if ( Array.isArray(steps) === false ) { return resultset; }
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
+            switch ( step.mv ) {
+            case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
+                resultset = [ [ '$' ] ];
+                break;
+            case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
+                resultset = [ pathin ];
+                break;
+            case this.#CHILDREN:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
+                resultset = this.#getMatches(resultset, step);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+        return resultset;
+    }
+    #getMatches(listin, step) {
+        const listout = [];
+        for ( const pathin of listin ) {
+            const { value: owner } = this.#resolvePath(pathin);
+            if ( step.steps ) {
+                this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
+            }
+        }
+        return listout;
+    }
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
+            }
+            return out;
+        }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
+    }
+    #getMatchesFromExpr(pathin, step, owner, out) {
+        const recursive = step.mv === this.#DESCENDANTS;
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
+            const r = this.#evaluate(step.steps, q);
+            if ( Boolean(r?.length) === false ) { continue; }
+            out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
+        }
+    }
+    #getDescendants(v, recursive) {
+        const iterator = {
+            next() {
+                const n = this.stack.length;
+                if ( n === 0 ) {
+                    this.value = undefined;
+                    this.done = true;
+                    return this;
+                }
+                const details = this.stack[n-1];
+                const entry = details.keys.next();
+                if ( entry.done ) {
+                    this.stack.pop();
+                    this.path.pop();
+                    return this.next();
+                }
+                this.path[n-1] = entry.value;
+                this.value = {
+                    obj: details.obj,
+                    key: entry.value,
+                    path: this.path.slice(),
+                };
+                const v = this.value.obj[this.value.key];
+                if ( recursive ) {
+                    if ( Array.isArray(v) ) {
+                        this.stack.push({ obj: v, keys: v.keys() });
+                    } else if ( typeof v === 'object' && v !== null ) {
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
+                    }
+                }
+                return this;
+            },
+            path: [],
+            value: undefined,
+            done: false,
+            stack: [],
+            [Symbol.iterator]() { return this; },
+        };
+        if ( Array.isArray(v) ) {
+            iterator.stack.push({ obj: v, keys: v.keys() });
+        } else if ( typeof v === 'object' && v !== null ) {
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
+        }
+        return iterator;
+    }
+    #consumeIdentifier(query, i) {
+        const keys = [];
+        for (;;) {
+            const c0 = query.charCodeAt(i);
+            if ( c0 === 0x5D /* ] */ ) { break; }
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+                i += 1;
+                continue;
+            }
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
+                if ( r === undefined ) { return; }
+                keys.push(r.s);
+                i = r.i;
+                continue;
+            }
+            if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
+                const match = this.#reIndice.exec(query.slice(i));
+                if ( match === null ) { return; }
+                const indice = parseInt(query.slice(i), 10);
+                keys.push(indice);
+                i += match[0].length;
+                continue;
+            }
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
+        }
+        return { s: keys.length === 1 ? keys[0] : keys, i };
+    }
+    #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
+        const match = this.#reUnquotedIdentifier.exec(query.slice(i));
+        if ( match === null ) { return; }
+        return { s: match[0], i: i + match[0].length };
+    }
+    #untilChar(query, targetCharCode, i) {
+        const len = query.length;
+        const parts = [];
+        let beg = i, end = i;
+        for (;;) {
+            if ( end === len ) { return; }
+            const c = query.charCodeAt(end);
+            if ( c === targetCharCode ) {
+                parts.push(query.slice(beg, end));
+                end += 1;
+                break;
+            }
+            if ( c === 0x5C /* \ */ && (end+1) < len ) {
+                const d = query.charCodeAt(end+1);
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
+                    end += 1;
+                    beg = end;
+                }
+            }
+            end += 1;
+        }
+        return { s: parts.join(''), i: end };
+    }
+    #compileExpr(query, step, i) {
+        if ( query.startsWith('=/', i) ) {
+            const r = this.#untilChar(query, 0x2F /* / */, i+2);
+            if ( r === undefined ) { return i; }
+            const match = /^[i]/.exec(query.slice(r.i));
+            try {
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
+            step.op = 're';
+            if ( match ) { r.i += match[0].length; }
+            return r.i;
+        }
+        const match = this.#reExpr.exec(query.slice(i));
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
+        }
+        return i + match[0].length - 1;
+    }
+    #resolvePath(path) {
+        if ( path.length === 0 ) { return { value: this.#root }; }
+        const key = path.at(-1);
+        let obj = this.#root
+        for ( let i = 0, n = path.length-1; i < n; i++ ) {
+            obj = obj[path[i]];
+        }
+        return { obj, key, value: obj[key] };
+    }
+    #evaluateExpr(step, owner, k) {
+        if ( owner === undefined || owner === null ) { return; }
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
+        if ( step.op !== undefined && hasOwn === false ) { return; }
+        const target = step.not !== true;
+        const v = owner[k];
+        switch ( step.op ) {
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
+        }
+        return hasOwn === target;
+    }
+    #modifyVal(obj, key) {
+        let { modify, rval } = this.#compiled;
+        if ( typeof rval === 'string' ) {
+            rval = rval.replace('${now}', `${Date.now()}`);
+        }
+        switch ( modify ) {
+        case undefined:
+            obj[key] = rval;
+            break;
+        case '+': {
+            if ( rval instanceof Object === false ) { return; }
+            const lval = obj[key];
+            if ( lval instanceof Object === false ) { return; }
+            if ( Array.isArray(lval) ) { return; }
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
+                lval[k] = v;
+            }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
+            break;
+        }
+        case 'repl': {
+            const lval = obj[key];
+            if ( typeof lval !== 'string' ) { return; }
+            if ( this.#compiled.re === undefined ) {
+                this.#compiled.re = null;
+                try {
+                    this.#compiled.re = rval.regex !== undefined
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
+            }
+            if ( this.#compiled.re === null ) { return; }
+            obj[key] = lval.replace(this.#compiled.re, rval.replacement);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+function editThisObjectFn(
+    trusted = false,
+    propChain = '',
+    jsonq = '',
+    order = ''
+) {
+    if ( propChain === '' ) { return; }
+    const safe = safeSelf();
+    const logPrefix = safe.makeLogPrefix(
+        `${trusted ? 'trusted-' : ''}edit-this-object`,
+        propChain,
+        jsonq
+    );
+    const jsonp = JSONPath.create(jsonq);
+    if ( jsonp.valid === false || jsonp.value !== undefined && trusted !== true ) {
+        return safe.uboLog(logPrefix, 'Bad JSONPath query');
+    }
+    const editObj = objBefore => {
+        const objAfter = jsonp.apply(objBefore);
+        if ( objAfter === undefined ) { return; }
+        safe.uboLog(logPrefix, 'Edited');
+        if ( safe.logLevel <= 1 ) { return; }
+        safe.uboLog(logPrefix, `After edit:\n${safe.JSON_stringify(objAfter, null, 2)}`);
+    };
+    proxyApplyFn(propChain, function(context) {
+        const { thisArg } = context;
+        let r;
+        if ( order === 'after' ) {
+            r = context.reflect();
+        }
+        editObj(thisArg);
+        if ( order !== 'after' ) {
+            r = context.reflect();
+        }
+        return r;
+    });
+}
+function trustedEditThisObject(...args) {
+    editThisObjectFn(true, ...args);
+};
+trustedEditThisObject(...args);
+},
+};
+
+
+scriptlets['edit-element-object.js'] = {
+aliases: [],
+
+requiresTrust: false,
+func: function (scriptletGlobals = {}, ...args) {
+function sleepFn(ms = 0) {
+    const nap = ( ) => {
+        return new Promise(resolve => {
+            self.requestAnimationFrame(resolve);
+        });
+    }
+    const until = Date.now() + ms;
+    const sleep = async resolve => {
+        do {
+            await nap();
+        } while ( Date.now() < until );
+        resolve();
+    };
+    return new Promise(resolve => { sleep(resolve); });
+}
+function safeSelf() {
+    if ( scriptletGlobals.safeSelf ) {
+        return scriptletGlobals.safeSelf;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'Object_toString': Object.prototype.toString,
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+    };
+    scriptletGlobals.safeSelf = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function onIdleFn(fn, options) {
+    if ( self.requestIdleCallback ) {
+        return self.requestIdleCallback(fn, options);
+    }
+    return self.requestAnimationFrame(fn);
+}
+function offIdleFn(id) {
+    if ( self.requestIdleCallback ) {
+        return self.cancelIdleCallback(id);
+    }
+    return self.cancelAnimationFrame(id);
+}
+function lookupElementsFn(directive, until = 0) {
+    if ( lookupElementsFn.querySelectorEx === undefined ) {
+        lookupElementsFn.getShadowRoot = elem => {
+            if ( elem.openOrClosedShadowRoot ) { // Firefox
+                return elem.openOrClosedShadowRoot;
+            }
+            if ( typeof chrome === 'object' ) { // Chromium
+                if ( chrome.dom && chrome.dom.openOrClosedShadowRoot ) {
+                    return chrome.dom.openOrClosedShadowRoot(elem);
+                }
+            }
+            return elem.shadowRoot;
+        };
+        lookupElementsFn.queryOrEvaluateSelector = (selector, context) => {
+            if ( selector.startsWith('xpath:') === false ) {
+                return Array.from(context.querySelectorAll(selector));
+            }
+            const result = document.evaluate(selector.slice(6), context, null, 7, null);
+            const out = [];
+            if ( result.resultType === 7 ) {
+                for ( let i = 0; i < result.snapshotLength; i++ ) {
+                    out[i] = result.snapshotItem(i);
+                }
+            }
+            return out;
+        }
+        lookupElementsFn.querySelectorEx = (selector, context = document) => {
+            const pos = selector.indexOf(' >>> ');
+            if ( pos === -1 ) {
+                return lookupElementsFn.queryOrEvaluateSelector(selector, context);
+            }
+            const outside = selector.slice(0, pos).trim();
+            const inside = selector.slice(pos + 5).trim();
+            const elems = lookupElementsFn.queryOrEvaluateSelector(outside, context);
+            const out = [];
+            for ( let i = 0; i < elems.length; i++ ) {
+                const shadowRoot = lookupElementsFn.getShadowRoot(elems[i]);
+                if ( Boolean(shadowRoot) === false ) { continue; }
+                lookupElementsFn.querySelectorEx(inside, shadowRoot).forEach(a => out.push(a));
+            }
+            return out;
+        };
+        lookupElementsFn.lookup = directive => {
+            const beVisible = directive.startsWith('when-visible:');
+            const selector = beVisible ? directive.slice(13) : directive;
+            const elems = lookupElementsFn.querySelectorEx(selector);
+            if ( beVisible !== true ) { return elems; }
+            return elems.filter(a => a.checkVisibility({
+                opacityProperty: true,
+                visibilityProperty: true,
+            }));
+        };
+        lookupElementsFn.lookupAsync = details => {
+            const elems = lookupElementsFn.lookup(details.directive);
+            if ( elems.length || Date.now() >= details.until ) {
+                if ( details.observer ) {
+                    details.observer.disconnect();
+                    details.observer = undefined;
+                }
+                if ( details.timer ) {
+                    offIdleFn(details.timer);
+                    details.timer = undefined;
+                }
+                return details.resolve(elems);
+            }
+            if ( details.observer === undefined ) {
+                details.observer = new MutationObserver(( ) => {
+                    lookupElementsFn.lookupAsync(details);
+                });
+                details.observer.observe(document, {
+                    attributes: true,
+                    childList: true,
+                    subtree: true,
+                });
+            }
+            if ( details.timer === undefined ) {
+                details.timer = onIdleFn(( ) => {
+                    details.timer = undefined;
+                    lookupElementsFn.lookupAsync(details);
+                }, { timeout: 151 });
+            }
+        };
+    }
+    if ( until === 0 ) {
+        return lookupElementsFn.lookup(directive);
+    }
+    return new Promise(resolve => {
+        lookupElementsFn.lookupAsync({ directive, until, resolve });
+    });
+}
+class JSONPath {
+    static create(query) {
+        const jsonp = new JSONPath();
+        jsonp.compile(query);
+        return jsonp;
+    }
+    static toJSON(obj, stringifier, ...args) {
+        return (stringifier || JSON.stringify)(obj, ...args)
+            .replace(/\//g, '\\/');
+    }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
+    get value() {
+        return this.#compiled && this.#compiled.rval;
+    }
+    set value(v) {
+        if ( this.#compiled === undefined ) { return; }
+        this.#compiled.rval = v;
+    }
+    get valid() {
+        return this.#compiled !== undefined;
+    }
+    compile(query) {
+        this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
+        const r = this.#compile(query, 0);
+        if ( r === undefined ) { return; }
+        if ( r.i !== query.length ) {
+            let val;
+            if ( query.startsWith('=', r.i) ) {
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
+                } else {
+                    val = query.slice(r.i+1);
+                }
+            } else if ( query.startsWith('+=', r.i) ) {
+                r.modify = '+';
+                val = query.slice(r.i+2);
+            }
+            try { r.rval = JSON.parse(val); }
+            catch { return; }
+        }
+        r.v2 = v2;
+        this.#compiled = r;
+    }
+    evaluate(root) {
+        if ( this.valid === false ) { return []; }
+        this.#root = { '$': root };
+        const paths = this.#evaluate(this.#compiled.steps, []);
+        this.#root = null;
+        return paths;
+    }
+    apply(root) {
+        if ( this.valid === false ) { return; }
+        const { rval } = this.#compiled;
+        this.#root = { '$': root };
+        const paths = this.#evaluate(this.#compiled.steps, []);
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
+        while ( i-- ) {
+            const { obj, key } = this.#resolvePath(paths[i]);
+            if ( rval !== undefined ) {
+                this.#modifyVal(obj, key);
+            } else if ( Array.isArray(obj) && typeof key === 'number' ) {
+                obj.splice(key, 1);
+            } else {
+                delete obj[key];
+            }
+        }
+        const result = this.#root['$'] ?? null;
+        this.#root = null;
+        return result;
+    }
+    dump() {
+        return JSON.stringify(this.#compiled);
+    }
+    toJSON(obj, ...args) {
+        return JSONPath.toJSON(obj, null, ...args)
+    }
+    get [Symbol.toStringTag]() {
+        return 'JSONPath';
+    }
+    #UNDEFINED = 0;
+    #ROOT = 1;
+    #CURRENT = 2;
+    #CHILDREN = 3;
+    #DESCENDANTS = 4;
+    #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
+    #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
+    #root;
+    #compiled;
+    #compile(query, i) {
+        if ( query.length === 0 ) { return; }
+        const steps = [];
+        let c = query.charCodeAt(i);
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
+        let mv = this.#UNDEFINED;
+        for (;;) {
+            if ( i === query.length ) { break; }
+            c = query.charCodeAt(i);
+            if ( c === 0x20 /* whitespace */ ) {
+                i += 1;
+                continue;
+            }
+            // Dot accessor syntax
+            if ( c === 0x2E /* . */ ) {
+                if ( mv !== this.#UNDEFINED ) { return; }
+                if ( query.startsWith('..', i) ) {
+                    mv = this.#DESCENDANTS;
+                    i += 2;
+                } else {
+                    mv = this.#CHILDREN;
+                    i += 1;
+                }
+                continue;
+            }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            if ( c !== 0x5B /* [ */ ) {
+                if ( mv === this.#UNDEFINED ) {
+                    const step = steps.at(-1);
+                    if ( step === undefined ) { return; }
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
+                    break;
+                }
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            // Bracket accessor syntax
+            if ( query.startsWith('[?', i) ) {
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
+                const r = this.#compile(query, j);
+                if ( r === undefined ) { return; }
+                if ( query.startsWith(']', r.i) === false ) { return; }
+                if ( not ) { r.steps.at(-1).not = true; }
+                steps.push({ mv: mv || this.#CHILDREN, steps: r.steps });
+                i = r.i + 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            if ( query.startsWith('[*]', i) ) {
+                mv ||= this.#CHILDREN;
+                steps.push({ mv, k: '*' });
+                i += 3;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            const r = this.#consumeIdentifier(query, i+1);
+            if ( r === undefined ) { return; }
+            mv ||= this.#CHILDREN;
+            steps.push({ mv, k: r.s });
+            i = r.i + 1;
+            mv = this.#UNDEFINED;
+        }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
+        return { steps, i };
+    }
+    #evaluate(steps, pathin) {
+        let resultset = [];
+        if ( Array.isArray(steps) === false ) { return resultset; }
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
+            switch ( step.mv ) {
+            case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
+                resultset = [ [ '$' ] ];
+                break;
+            case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
+                resultset = [ pathin ];
+                break;
+            case this.#CHILDREN:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
+                resultset = this.#getMatches(resultset, step);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+        return resultset;
+    }
+    #getMatches(listin, step) {
+        const listout = [];
+        for ( const pathin of listin ) {
+            const { value: owner } = this.#resolvePath(pathin);
+            if ( step.steps ) {
+                this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
+            }
+        }
+        return listout;
+    }
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
+            }
+            return out;
+        }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
+    }
+    #getMatchesFromExpr(pathin, step, owner, out) {
+        const recursive = step.mv === this.#DESCENDANTS;
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
+            const r = this.#evaluate(step.steps, q);
+            if ( Boolean(r?.length) === false ) { continue; }
+            out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
+        }
+    }
+    #getDescendants(v, recursive) {
+        const iterator = {
+            next() {
+                const n = this.stack.length;
+                if ( n === 0 ) {
+                    this.value = undefined;
+                    this.done = true;
+                    return this;
+                }
+                const details = this.stack[n-1];
+                const entry = details.keys.next();
+                if ( entry.done ) {
+                    this.stack.pop();
+                    this.path.pop();
+                    return this.next();
+                }
+                this.path[n-1] = entry.value;
+                this.value = {
+                    obj: details.obj,
+                    key: entry.value,
+                    path: this.path.slice(),
+                };
+                const v = this.value.obj[this.value.key];
+                if ( recursive ) {
+                    if ( Array.isArray(v) ) {
+                        this.stack.push({ obj: v, keys: v.keys() });
+                    } else if ( typeof v === 'object' && v !== null ) {
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
+                    }
+                }
+                return this;
+            },
+            path: [],
+            value: undefined,
+            done: false,
+            stack: [],
+            [Symbol.iterator]() { return this; },
+        };
+        if ( Array.isArray(v) ) {
+            iterator.stack.push({ obj: v, keys: v.keys() });
+        } else if ( typeof v === 'object' && v !== null ) {
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
+        }
+        return iterator;
+    }
+    #consumeIdentifier(query, i) {
+        const keys = [];
+        for (;;) {
+            const c0 = query.charCodeAt(i);
+            if ( c0 === 0x5D /* ] */ ) { break; }
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+                i += 1;
+                continue;
+            }
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
+                if ( r === undefined ) { return; }
+                keys.push(r.s);
+                i = r.i;
+                continue;
+            }
+            if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
+                const match = this.#reIndice.exec(query.slice(i));
+                if ( match === null ) { return; }
+                const indice = parseInt(query.slice(i), 10);
+                keys.push(indice);
+                i += match[0].length;
+                continue;
+            }
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
+        }
+        return { s: keys.length === 1 ? keys[0] : keys, i };
+    }
+    #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
+        const match = this.#reUnquotedIdentifier.exec(query.slice(i));
+        if ( match === null ) { return; }
+        return { s: match[0], i: i + match[0].length };
+    }
+    #untilChar(query, targetCharCode, i) {
+        const len = query.length;
+        const parts = [];
+        let beg = i, end = i;
+        for (;;) {
+            if ( end === len ) { return; }
+            const c = query.charCodeAt(end);
+            if ( c === targetCharCode ) {
+                parts.push(query.slice(beg, end));
+                end += 1;
+                break;
+            }
+            if ( c === 0x5C /* \ */ && (end+1) < len ) {
+                const d = query.charCodeAt(end+1);
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
+                    end += 1;
+                    beg = end;
+                }
+            }
+            end += 1;
+        }
+        return { s: parts.join(''), i: end };
+    }
+    #compileExpr(query, step, i) {
+        if ( query.startsWith('=/', i) ) {
+            const r = this.#untilChar(query, 0x2F /* / */, i+2);
+            if ( r === undefined ) { return i; }
+            const match = /^[i]/.exec(query.slice(r.i));
+            try {
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
+            step.op = 're';
+            if ( match ) { r.i += match[0].length; }
+            return r.i;
+        }
+        const match = this.#reExpr.exec(query.slice(i));
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
+        }
+        return i + match[0].length - 1;
+    }
+    #resolvePath(path) {
+        if ( path.length === 0 ) { return { value: this.#root }; }
+        const key = path.at(-1);
+        let obj = this.#root
+        for ( let i = 0, n = path.length-1; i < n; i++ ) {
+            obj = obj[path[i]];
+        }
+        return { obj, key, value: obj[key] };
+    }
+    #evaluateExpr(step, owner, k) {
+        if ( owner === undefined || owner === null ) { return; }
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
+        if ( step.op !== undefined && hasOwn === false ) { return; }
+        const target = step.not !== true;
+        const v = owner[k];
+        switch ( step.op ) {
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
+        }
+        return hasOwn === target;
+    }
+    #modifyVal(obj, key) {
+        let { modify, rval } = this.#compiled;
+        if ( typeof rval === 'string' ) {
+            rval = rval.replace('${now}', `${Date.now()}`);
+        }
+        switch ( modify ) {
+        case undefined:
+            obj[key] = rval;
+            break;
+        case '+': {
+            if ( rval instanceof Object === false ) { return; }
+            const lval = obj[key];
+            if ( lval instanceof Object === false ) { return; }
+            if ( Array.isArray(lval) ) { return; }
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
+                lval[k] = v;
+            }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
+            break;
+        }
+        case 'repl': {
+            const lval = obj[key];
+            if ( typeof lval !== 'string' ) { return; }
+            if ( this.#compiled.re === undefined ) {
+                this.#compiled.re = null;
+                try {
+                    this.#compiled.re = rval.regex !== undefined
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
+            }
+            if ( this.#compiled.re === null ) { return; }
+            obj[key] = lval.replace(this.#compiled.re, rval.replacement);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+async function editElementObjectFn(
+    trusted = false,
+    selector = '',
+    jsonq = '',
+    timeout = ''
+) {
+    if ( selector === '' ) { return; }
+    const safe = safeSelf();
+    const logPrefix = safe.makeLogPrefix(
+        `${trusted ? 'trusted-' : ''}edit-element-object`,
+        selector, jsonq, timeout
+    );
+    const jsonp = JSONPath.create(jsonq);
+    if ( jsonp.valid === false || jsonp.value !== undefined && trusted !== true ) {
+        return safe.uboLog(logPrefix, 'Bad JSONPath query');
+    }
+    const process = elems => {
+        for ( const elem of elems ) {
+            const r = jsonp.apply(elem);
+            if ( r === undefined ) { continue; }
+            safe.uboLog(logPrefix, 'Edited');
+        }
+    };
+    const until = timeout !== '' ? Date.now() + parseInt(timeout, 10) : 0;
+    do {
+        const r = lookupElementsFn(selector, until);
+        if ( Array.isArray(r) ) {
+            process(r);
+        } else if ( r instanceof Promise ) {
+            const elems = await r;
+            process(elems);
+        }
+        await sleepFn();
+    } while ( Date.now() < until );
+}
+function editElementObject(...args) {
+    editElementObjectFn(false, ...args);
+};
+editElementObject(...args);
+},
+};
+
+
+scriptlets['trusted-edit-element-object.js'] = {
+aliases: [],
+
+requiresTrust: true,
+func: function (scriptletGlobals = {}, ...args) {
+function sleepFn(ms = 0) {
+    const nap = ( ) => {
+        return new Promise(resolve => {
+            self.requestAnimationFrame(resolve);
+        });
+    }
+    const until = Date.now() + ms;
+    const sleep = async resolve => {
+        do {
+            await nap();
+        } while ( Date.now() < until );
+        resolve();
+    };
+    return new Promise(resolve => { sleep(resolve); });
+}
+function safeSelf() {
+    if ( scriptletGlobals.safeSelf ) {
+        return scriptletGlobals.safeSelf;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'Object_toString': Object.prototype.toString,
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+    };
+    scriptletGlobals.safeSelf = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function onIdleFn(fn, options) {
+    if ( self.requestIdleCallback ) {
+        return self.requestIdleCallback(fn, options);
+    }
+    return self.requestAnimationFrame(fn);
+}
+function offIdleFn(id) {
+    if ( self.requestIdleCallback ) {
+        return self.cancelIdleCallback(id);
+    }
+    return self.cancelAnimationFrame(id);
+}
+function lookupElementsFn(directive, until = 0) {
+    if ( lookupElementsFn.querySelectorEx === undefined ) {
+        lookupElementsFn.getShadowRoot = elem => {
+            if ( elem.openOrClosedShadowRoot ) { // Firefox
+                return elem.openOrClosedShadowRoot;
+            }
+            if ( typeof chrome === 'object' ) { // Chromium
+                if ( chrome.dom && chrome.dom.openOrClosedShadowRoot ) {
+                    return chrome.dom.openOrClosedShadowRoot(elem);
+                }
+            }
+            return elem.shadowRoot;
+        };
+        lookupElementsFn.queryOrEvaluateSelector = (selector, context) => {
+            if ( selector.startsWith('xpath:') === false ) {
+                return Array.from(context.querySelectorAll(selector));
+            }
+            const result = document.evaluate(selector.slice(6), context, null, 7, null);
+            const out = [];
+            if ( result.resultType === 7 ) {
+                for ( let i = 0; i < result.snapshotLength; i++ ) {
+                    out[i] = result.snapshotItem(i);
+                }
+            }
+            return out;
+        }
+        lookupElementsFn.querySelectorEx = (selector, context = document) => {
+            const pos = selector.indexOf(' >>> ');
+            if ( pos === -1 ) {
+                return lookupElementsFn.queryOrEvaluateSelector(selector, context);
+            }
+            const outside = selector.slice(0, pos).trim();
+            const inside = selector.slice(pos + 5).trim();
+            const elems = lookupElementsFn.queryOrEvaluateSelector(outside, context);
+            const out = [];
+            for ( let i = 0; i < elems.length; i++ ) {
+                const shadowRoot = lookupElementsFn.getShadowRoot(elems[i]);
+                if ( Boolean(shadowRoot) === false ) { continue; }
+                lookupElementsFn.querySelectorEx(inside, shadowRoot).forEach(a => out.push(a));
+            }
+            return out;
+        };
+        lookupElementsFn.lookup = directive => {
+            const beVisible = directive.startsWith('when-visible:');
+            const selector = beVisible ? directive.slice(13) : directive;
+            const elems = lookupElementsFn.querySelectorEx(selector);
+            if ( beVisible !== true ) { return elems; }
+            return elems.filter(a => a.checkVisibility({
+                opacityProperty: true,
+                visibilityProperty: true,
+            }));
+        };
+        lookupElementsFn.lookupAsync = details => {
+            const elems = lookupElementsFn.lookup(details.directive);
+            if ( elems.length || Date.now() >= details.until ) {
+                if ( details.observer ) {
+                    details.observer.disconnect();
+                    details.observer = undefined;
+                }
+                if ( details.timer ) {
+                    offIdleFn(details.timer);
+                    details.timer = undefined;
+                }
+                return details.resolve(elems);
+            }
+            if ( details.observer === undefined ) {
+                details.observer = new MutationObserver(( ) => {
+                    lookupElementsFn.lookupAsync(details);
+                });
+                details.observer.observe(document, {
+                    attributes: true,
+                    childList: true,
+                    subtree: true,
+                });
+            }
+            if ( details.timer === undefined ) {
+                details.timer = onIdleFn(( ) => {
+                    details.timer = undefined;
+                    lookupElementsFn.lookupAsync(details);
+                }, { timeout: 151 });
+            }
+        };
+    }
+    if ( until === 0 ) {
+        return lookupElementsFn.lookup(directive);
+    }
+    return new Promise(resolve => {
+        lookupElementsFn.lookupAsync({ directive, until, resolve });
+    });
+}
+class JSONPath {
+    static create(query) {
+        const jsonp = new JSONPath();
+        jsonp.compile(query);
+        return jsonp;
+    }
+    static toJSON(obj, stringifier, ...args) {
+        return (stringifier || JSON.stringify)(obj, ...args)
+            .replace(/\//g, '\\/');
+    }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
+    get value() {
+        return this.#compiled && this.#compiled.rval;
+    }
+    set value(v) {
+        if ( this.#compiled === undefined ) { return; }
+        this.#compiled.rval = v;
+    }
+    get valid() {
+        return this.#compiled !== undefined;
+    }
+    compile(query) {
+        this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
+        const r = this.#compile(query, 0);
+        if ( r === undefined ) { return; }
+        if ( r.i !== query.length ) {
+            let val;
+            if ( query.startsWith('=', r.i) ) {
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
+                } else {
+                    val = query.slice(r.i+1);
+                }
+            } else if ( query.startsWith('+=', r.i) ) {
+                r.modify = '+';
+                val = query.slice(r.i+2);
+            }
+            try { r.rval = JSON.parse(val); }
+            catch { return; }
+        }
+        r.v2 = v2;
+        this.#compiled = r;
+    }
+    evaluate(root) {
+        if ( this.valid === false ) { return []; }
+        this.#root = { '$': root };
+        const paths = this.#evaluate(this.#compiled.steps, []);
+        this.#root = null;
+        return paths;
+    }
+    apply(root) {
+        if ( this.valid === false ) { return; }
+        const { rval } = this.#compiled;
+        this.#root = { '$': root };
+        const paths = this.#evaluate(this.#compiled.steps, []);
+        let i = paths.length
+        if ( i === 0 ) { this.#root = null; return; }
+        while ( i-- ) {
+            const { obj, key } = this.#resolvePath(paths[i]);
+            if ( rval !== undefined ) {
+                this.#modifyVal(obj, key);
+            } else if ( Array.isArray(obj) && typeof key === 'number' ) {
+                obj.splice(key, 1);
+            } else {
+                delete obj[key];
+            }
+        }
+        const result = this.#root['$'] ?? null;
+        this.#root = null;
+        return result;
+    }
+    dump() {
+        return JSON.stringify(this.#compiled);
+    }
+    toJSON(obj, ...args) {
+        return JSONPath.toJSON(obj, null, ...args)
+    }
+    get [Symbol.toStringTag]() {
+        return 'JSONPath';
+    }
+    #UNDEFINED = 0;
+    #ROOT = 1;
+    #CURRENT = 2;
+    #CHILDREN = 3;
+    #DESCENDANTS = 4;
+    #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
+    #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
+    #root;
+    #compiled;
+    #compile(query, i) {
+        if ( query.length === 0 ) { return; }
+        const steps = [];
+        let c = query.charCodeAt(i);
+        if ( c === 0x24 /* $ */ ) {
+            steps.push({ mv: this.#ROOT });
+            i += 1;
+        } else if ( c === 0x40 /* @ */ ) {
+            steps.push({ mv: this.#CURRENT });
+            i += 1;
+        } else {
+            steps.push({ mv: i === 0 ? this.#ROOT : this.#CURRENT });
+        }
+        let mv = this.#UNDEFINED;
+        for (;;) {
+            if ( i === query.length ) { break; }
+            c = query.charCodeAt(i);
+            if ( c === 0x20 /* whitespace */ ) {
+                i += 1;
+                continue;
+            }
+            // Dot accessor syntax
+            if ( c === 0x2E /* . */ ) {
+                if ( mv !== this.#UNDEFINED ) { return; }
+                if ( query.startsWith('..', i) ) {
+                    mv = this.#DESCENDANTS;
+                    i += 2;
+                } else {
+                    mv = this.#CHILDREN;
+                    i += 1;
+                }
+                continue;
+            }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            if ( c !== 0x5B /* [ */ ) {
+                if ( mv === this.#UNDEFINED ) {
+                    const step = steps.at(-1);
+                    if ( step === undefined ) { return; }
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
+                    break;
+                }
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            // Bracket accessor syntax
+            if ( query.startsWith('[?', i) ) {
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
+                const r = this.#compile(query, j);
+                if ( r === undefined ) { return; }
+                if ( query.startsWith(']', r.i) === false ) { return; }
+                if ( not ) { r.steps.at(-1).not = true; }
+                steps.push({ mv: mv || this.#CHILDREN, steps: r.steps });
+                i = r.i + 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            if ( query.startsWith('[*]', i) ) {
+                mv ||= this.#CHILDREN;
+                steps.push({ mv, k: '*' });
+                i += 3;
+                mv = this.#UNDEFINED;
+                continue;
+            }
+            const r = this.#consumeIdentifier(query, i+1);
+            if ( r === undefined ) { return; }
+            mv ||= this.#CHILDREN;
+            steps.push({ mv, k: r.s });
+            i = r.i + 1;
+            mv = this.#UNDEFINED;
+        }
+        if ( steps.length === 0 ) { return; }
+        if ( mv !== this.#UNDEFINED ) { return; }
+        return { steps, i };
+    }
+    #evaluate(steps, pathin) {
+        let resultset = [];
+        if ( Array.isArray(steps) === false ) { return resultset; }
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
+            switch ( step.mv ) {
+            case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
+                resultset = [ [ '$' ] ];
+                break;
+            case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
+                resultset = [ pathin ];
+                break;
+            case this.#CHILDREN:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
+                resultset = this.#getMatches(resultset, step);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+        return resultset;
+    }
+    #getMatches(listin, step) {
+        const listout = [];
+        for ( const pathin of listin ) {
+            const { value: owner } = this.#resolvePath(pathin);
+            if ( step.steps ) {
+                this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
+            }
+        }
+        return listout;
+    }
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
+            }
+            return out;
+        }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
+    }
+    #getMatchesFromExpr(pathin, step, owner, out) {
+        const recursive = step.mv === this.#DESCENDANTS;
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
+            const r = this.#evaluate(step.steps, q);
+            if ( Boolean(r?.length) === false ) { continue; }
+            out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
+        }
+    }
+    #getDescendants(v, recursive) {
+        const iterator = {
+            next() {
+                const n = this.stack.length;
+                if ( n === 0 ) {
+                    this.value = undefined;
+                    this.done = true;
+                    return this;
+                }
+                const details = this.stack[n-1];
+                const entry = details.keys.next();
+                if ( entry.done ) {
+                    this.stack.pop();
+                    this.path.pop();
+                    return this.next();
+                }
+                this.path[n-1] = entry.value;
+                this.value = {
+                    obj: details.obj,
+                    key: entry.value,
+                    path: this.path.slice(),
+                };
+                const v = this.value.obj[this.value.key];
+                if ( recursive ) {
+                    if ( Array.isArray(v) ) {
+                        this.stack.push({ obj: v, keys: v.keys() });
+                    } else if ( typeof v === 'object' && v !== null ) {
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
+                    }
+                }
+                return this;
+            },
+            path: [],
+            value: undefined,
+            done: false,
+            stack: [],
+            [Symbol.iterator]() { return this; },
+        };
+        if ( Array.isArray(v) ) {
+            iterator.stack.push({ obj: v, keys: v.keys() });
+        } else if ( typeof v === 'object' && v !== null ) {
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
+        }
+        return iterator;
+    }
+    #consumeIdentifier(query, i) {
+        const keys = [];
+        for (;;) {
+            const c0 = query.charCodeAt(i);
+            if ( c0 === 0x5D /* ] */ ) { break; }
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+                i += 1;
+                continue;
+            }
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
+                if ( r === undefined ) { return; }
+                keys.push(r.s);
+                i = r.i;
+                continue;
+            }
+            if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
+                const match = this.#reIndice.exec(query.slice(i));
+                if ( match === null ) { return; }
+                const indice = parseInt(query.slice(i), 10);
+                keys.push(indice);
+                i += match[0].length;
+                continue;
+            }
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
+        }
+        return { s: keys.length === 1 ? keys[0] : keys, i };
+    }
+    #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
+        const match = this.#reUnquotedIdentifier.exec(query.slice(i));
+        if ( match === null ) { return; }
+        return { s: match[0], i: i + match[0].length };
+    }
+    #untilChar(query, targetCharCode, i) {
+        const len = query.length;
+        const parts = [];
+        let beg = i, end = i;
+        for (;;) {
+            if ( end === len ) { return; }
+            const c = query.charCodeAt(end);
+            if ( c === targetCharCode ) {
+                parts.push(query.slice(beg, end));
+                end += 1;
+                break;
+            }
+            if ( c === 0x5C /* \ */ && (end+1) < len ) {
+                const d = query.charCodeAt(end+1);
+                if ( d === targetCharCode ) {
+                    parts.push(query.slice(beg, end));
+                    end += 1;
+                    beg = end;
+                }
+            }
+            end += 1;
+        }
+        return { s: parts.join(''), i: end };
+    }
+    #compileExpr(query, step, i) {
+        if ( query.startsWith('=/', i) ) {
+            const r = this.#untilChar(query, 0x2F /* / */, i+2);
+            if ( r === undefined ) { return i; }
+            const match = /^[i]/.exec(query.slice(r.i));
+            try {
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
+            step.op = 're';
+            if ( match ) { r.i += match[0].length; }
+            return r.i;
+        }
+        const match = this.#reExpr.exec(query.slice(i));
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
+        }
+        return i + match[0].length - 1;
+    }
+    #resolvePath(path) {
+        if ( path.length === 0 ) { return { value: this.#root }; }
+        const key = path.at(-1);
+        let obj = this.#root
+        for ( let i = 0, n = path.length-1; i < n; i++ ) {
+            obj = obj[path[i]];
+        }
+        return { obj, key, value: obj[key] };
+    }
+    #evaluateExpr(step, owner, k) {
+        if ( owner === undefined || owner === null ) { return; }
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
+        if ( step.op !== undefined && hasOwn === false ) { return; }
+        const target = step.not !== true;
+        const v = owner[k];
+        switch ( step.op ) {
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
+        }
+        return hasOwn === target;
+    }
+    #modifyVal(obj, key) {
+        let { modify, rval } = this.#compiled;
+        if ( typeof rval === 'string' ) {
+            rval = rval.replace('${now}', `${Date.now()}`);
+        }
+        switch ( modify ) {
+        case undefined:
+            obj[key] = rval;
+            break;
+        case '+': {
+            if ( rval instanceof Object === false ) { return; }
+            const lval = obj[key];
+            if ( lval instanceof Object === false ) { return; }
+            if ( Array.isArray(lval) ) { return; }
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
+                lval[k] = v;
+            }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
+            break;
+        }
+        case 'repl': {
+            const lval = obj[key];
+            if ( typeof lval !== 'string' ) { return; }
+            if ( this.#compiled.re === undefined ) {
+                this.#compiled.re = null;
+                try {
+                    this.#compiled.re = rval.regex !== undefined
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
+            }
+            if ( this.#compiled.re === null ) { return; }
+            obj[key] = lval.replace(this.#compiled.re, rval.replacement);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+}
+async function editElementObjectFn(
+    trusted = false,
+    selector = '',
+    jsonq = '',
+    timeout = ''
+) {
+    if ( selector === '' ) { return; }
+    const safe = safeSelf();
+    const logPrefix = safe.makeLogPrefix(
+        `${trusted ? 'trusted-' : ''}edit-element-object`,
+        selector, jsonq, timeout
+    );
+    const jsonp = JSONPath.create(jsonq);
+    if ( jsonp.valid === false || jsonp.value !== undefined && trusted !== true ) {
+        return safe.uboLog(logPrefix, 'Bad JSONPath query');
+    }
+    const process = elems => {
+        for ( const elem of elems ) {
+            const r = jsonp.apply(elem);
+            if ( r === undefined ) { continue; }
+            safe.uboLog(logPrefix, 'Edited');
+        }
+    };
+    const until = timeout !== '' ? Date.now() + parseInt(timeout, 10) : 0;
+    do {
+        const r = lookupElementsFn(selector, until);
+        if ( Array.isArray(r) ) {
+            process(r);
+        } else if ( r instanceof Promise ) {
+            const elems = await r;
+            process(elems);
+        }
+        await sleepFn();
+    } while ( Date.now() < until );
+}
+function trustedEditElementObject(...args) {
+    editElementObjectFn(true, ...args);
+};
+trustedEditElementObject(...args);
 },
 };
 
@@ -6521,18 +10059,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -6620,6 +10146,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -6632,14 +10162,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -6650,11 +10183,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -6695,8 +10229,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -6732,24 +10267,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -6780,18 +10322,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -6802,60 +10353,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -6884,7 +10444,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -6898,7 +10458,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -6907,12 +10467,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -6926,17 +10486,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -6968,22 +10535,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -6994,31 +10566,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -7034,9 +10601,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -7046,10 +10625,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -7280,18 +10858,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -7379,6 +10945,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -7391,14 +10961,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -7409,11 +10982,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -7454,8 +11028,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -7491,24 +11066,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -7539,18 +11121,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -7561,60 +11152,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -7643,7 +11243,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -7657,7 +11257,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -7666,12 +11266,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -7685,17 +11285,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -7727,22 +11334,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -7753,31 +11365,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -7793,9 +11400,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -7805,10 +11424,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -8039,18 +11657,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -8138,6 +11744,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -8150,14 +11760,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -8168,11 +11781,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -8213,8 +11827,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -8250,24 +11865,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -8298,18 +11920,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -8320,60 +11951,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -8402,7 +12042,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -8416,7 +12056,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -8425,12 +12065,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -8444,17 +12084,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -8486,22 +12133,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -8512,31 +12164,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -8552,9 +12199,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -8564,10 +12223,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -8781,18 +12439,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -8880,6 +12526,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -8892,14 +12542,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -8910,11 +12563,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -8955,8 +12609,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -8992,24 +12647,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -9040,18 +12702,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -9062,60 +12733,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -9144,7 +12824,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -9158,7 +12838,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -9167,12 +12847,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -9186,17 +12866,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -9228,22 +12915,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -9254,31 +12946,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -9294,9 +12981,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -9306,10 +13005,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -9527,6 +13225,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -9539,14 +13241,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -9557,11 +13262,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -9602,8 +13308,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -9639,24 +13346,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -9687,18 +13401,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -9709,60 +13432,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -9791,7 +13523,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -9805,7 +13537,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -9814,12 +13546,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -9833,17 +13565,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -9875,22 +13614,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -9901,31 +13645,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -9941,9 +13680,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -9953,10 +13704,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -10087,18 +13837,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -10400,6 +14138,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -10412,14 +14154,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -10430,11 +14175,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -10475,8 +14221,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -10512,24 +14259,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -10560,18 +14314,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -10582,60 +14345,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -10664,7 +14436,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -10678,7 +14450,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -10687,12 +14459,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -10706,17 +14478,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -10748,22 +14527,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -10774,31 +14558,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -10814,9 +14593,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -10826,10 +14617,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -10960,18 +14750,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -11273,6 +15051,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -11285,14 +15067,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -11303,11 +15088,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -11348,8 +15134,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -11385,24 +15172,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -11433,18 +15227,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -11455,60 +15258,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -11537,7 +15349,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -11551,7 +15363,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -11560,12 +15372,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -11579,17 +15391,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -11621,22 +15440,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -11647,31 +15471,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -11687,9 +15506,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -11699,10 +15530,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -11833,18 +15663,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -12143,6 +15961,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -12155,14 +15977,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -12173,11 +15998,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -12218,8 +16044,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -12255,24 +16082,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -12303,18 +16137,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -12325,60 +16168,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -12407,7 +16259,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -12421,7 +16273,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -12430,12 +16282,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -12449,17 +16301,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -12491,22 +16350,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -12517,31 +16381,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -12557,9 +16416,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -12569,10 +16440,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -12703,18 +16573,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -13028,18 +16886,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -13130,6 +16976,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -13142,14 +16992,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -13160,11 +17013,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -13205,8 +17059,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -13242,24 +17097,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -13290,18 +17152,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -13312,60 +17183,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -13394,7 +17274,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -13408,7 +17288,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -13417,12 +17297,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -13436,17 +17316,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -13478,22 +17365,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -13504,31 +17396,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -13544,9 +17431,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -13556,10 +17455,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -13801,18 +17699,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -13903,6 +17789,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -13915,14 +17805,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -13933,11 +17826,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -13978,8 +17872,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -14015,24 +17910,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -14063,18 +17965,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -14085,60 +17996,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -14167,7 +18087,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -14181,7 +18101,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -14190,12 +18110,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -14209,17 +18129,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -14251,22 +18178,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -14277,31 +18209,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -14317,9 +18244,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -14329,10 +18268,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -14581,6 +18519,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -14593,14 +18535,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -14611,11 +18556,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -14656,8 +18602,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -14693,24 +18640,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -14741,18 +18695,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -14763,60 +18726,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -14845,7 +18817,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -14859,7 +18831,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -14868,12 +18840,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -14887,17 +18859,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -14929,22 +18908,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -14955,31 +18939,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -14995,9 +18974,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -15007,10 +18998,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -15141,18 +19131,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -15481,6 +19459,10 @@ class JSONPath {
         return (stringifier || JSON.stringify)(obj, ...args)
             .replace(/\//g, '\\/');
     }
+    static keys = Object.keys;
+    static entries = Object.entries;
+    static hasOwn = Object.hasOwn;
+    static Regex = RegExp;
     get value() {
         return this.#compiled && this.#compiled.rval;
     }
@@ -15493,14 +19475,17 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
+        const v2 = query.startsWith('v2:');
+        if ( v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
             let val;
             if ( query.startsWith('=', r.i) ) {
-                if ( /^=repl\(.+\)$/.test(query.slice(r.i)) ) {
-                    r.modify = 'repl';
-                    val = query.slice(r.i+6, -1);
+                const match = this.#reRval.exec(query.slice(r.i));
+                if ( match ) {
+                    r.modify = match[1];
+                    val = match[2];
                 } else {
                     val = query.slice(r.i+1);
                 }
@@ -15511,11 +19496,12 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
+        r.v2 = v2;
         this.#compiled = r;
     }
     evaluate(root) {
         if ( this.valid === false ) { return []; }
-        this.#root = root;
+        this.#root = { '$': root };
         const paths = this.#evaluate(this.#compiled.steps, []);
         this.#root = null;
         return paths;
@@ -15556,8 +19542,9 @@ class JSONPath {
     #CHILDREN = 3;
     #DESCENDANTS = 4;
     #reUnquotedIdentifier = /^[A-Za-z_][\w]*|^\*/;
-    #reExpr = /^([!=^$*]=|[<>]=?)(.+?)\]/;
+    #reExpr = /^\s*([!=^$*]=|[<>]=?)\s*(.+?)\]/;
     #reIndice = /^-?\d+/;
+    #reRval = /^=([a-z]+)\((.+)\)$/;
     #root;
     #compiled;
     #compile(query, i) {
@@ -15593,24 +19580,31 @@ class JSONPath {
                 }
                 continue;
             }
+            if ( c === 0x24 /* $ */ ) {
+                steps.push({ mv: this.#ROOT });
+                i += 1;
+                mv = this.#UNDEFINED;
+                continue;
+            }
             if ( c !== 0x5B /* [ */ ) {
                 if ( mv === this.#UNDEFINED ) {
                     const step = steps.at(-1);
                     if ( step === undefined ) { return; }
-                    i = this.#compileExpr(query, step, i);
+                    const j = this.#compileExpr(query, step, i);
+                    if ( j ) { i = j; }
                     break;
                 }
-                const s = this.#consumeUnquotedIdentifier(query, i);
-                if  ( s === undefined ) { return; }
-                steps.push({ mv, k: s });
-                i += s.length;
+                const r = this.#consumeUnquotedIdentifier(query, i);
+                if  ( r === undefined ) { return; }
+                steps.push({ mv, k: r.s });
+                i = r.i;
                 mv = this.#UNDEFINED;
                 continue;
             }
             // Bracket accessor syntax
             if ( query.startsWith('[?', i) ) {
-                const not = query.charCodeAt(i+2) === 0x21 /* ! */;
-                const j = i + 2 + (not ? 1 : 0);
+                const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
+                const j = i + 2 + not;
                 const r = this.#compile(query, j);
                 if ( r === undefined ) { return; }
                 if ( query.startsWith(']', r.i) === false ) { return; }
@@ -15641,18 +19635,27 @@ class JSONPath {
     #evaluate(steps, pathin) {
         let resultset = [];
         if ( Array.isArray(steps) === false ) { return resultset; }
-        for ( const step of steps ) {
+        for ( let i = 0; i < steps.length; i++ ) {
+            const step = steps[i];
             switch ( step.mv ) {
             case this.#ROOT:
+                if ( resultset.length === 0 && i !== 0 ) { break; }
                 resultset = [ [ '$' ] ];
                 break;
             case this.#CURRENT:
+                if ( step.op ) {
+                    const { obj, key } = this.#resolvePath(pathin);
+                    const outcome = this.#evaluateExpr(step, obj, key);
+                    if ( outcome !== true ) { break; }
+                }
                 resultset = [ pathin ];
                 break;
             case this.#CHILDREN:
-            case this.#DESCENDANTS:
+            case this.#DESCENDANTS: {
+                if ( resultset.length === 0 ) { break; }
                 resultset = this.#getMatches(resultset, step);
                 break;
+            }
             default:
                 break;
             }
@@ -15663,60 +19666,69 @@ class JSONPath {
         const listout = [];
         for ( const pathin of listin ) {
             const { value: owner } = this.#resolvePath(pathin);
-            if ( step.k === '*' ) {
-                this.#getMatchesFromAll(pathin, step, owner, listout);
-            } else if ( step.k !== undefined ) {
-                this.#getMatchesFromKeys(pathin, step, owner, listout);
-            } else if ( step.steps ) {
+            if ( step.steps ) {
                 this.#getMatchesFromExpr(pathin, step, owner, listout);
+                continue;
+            }
+            const iter = this.#expandKey(owner, step.k);
+            if ( iter ) {
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, owner, k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, k ]);
+                }
+            }
+            if ( step.mv !== this.#DESCENDANTS ) { continue; }
+            for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
+                const iter = this.#expandKey(obj[key], step.k);
+                if ( iter === undefined ) { continue; }
+                for ( const k of iter ) {
+                    const outcome = this.#evaluateExpr(step, obj[key], k);
+                    if ( outcome !== true ) { continue; }
+                    listout.push([ ...pathin, ...path, k ]);
+                }
             }
         }
         return listout;
     }
-    #getMatchesFromAll(pathin, step, owner, out) {
-        const recursive = step.mv === this.#DESCENDANTS;
-        for ( const { path } of this.#getDescendants(owner, recursive) ) {
-            out.push([ ...pathin, ...path ]);
-        }
-    }
-    #getMatchesFromKeys(pathin, step, owner, out) {
-        const kk = Array.isArray(step.k) ? step.k : [ step.k ];
-        for ( const k of kk ) {
-            const normalized = this.#evaluateExpr(step, owner, k);
-            if ( normalized === undefined ) { continue; }
-            out.push([ ...pathin, normalized ]);
-        }
-        if ( step.mv !== this.#DESCENDANTS ) { return; }
-        for ( const { obj, key, path } of this.#getDescendants(owner, true) ) {
-            for ( const k of kk ) {
-                const normalized = this.#evaluateExpr(step, obj[key], k);
-                if ( normalized === undefined ) { continue; }
-                out.push([ ...pathin, ...path, normalized ]);
+    #expandKey(owner, k) {
+        if ( typeof owner !== 'object' ) { return; }
+        if ( Array.isArray(k) ) {
+            const out = [];
+            for ( const a of k ) {
+                const iter = this.#expandKey(owner, a);
+                if ( iter === undefined ) { continue; }
+                out.push(...iter);
             }
+            return out;
         }
+        if ( typeof k === 'number' ) {
+            if ( Array.isArray(owner) === false ) { return; }
+            return [ k >= 0 ? k : owner.length + k ];
+        }
+        if ( k === '*' ) {
+            if ( Array.isArray(owner) ) { return owner.keys(); }
+            return JSONPath.keys(owner);
+        }
+        if ( k instanceof JSONPath.Regex ) {
+            const out = [];
+            for ( const key of JSONPath.keys(owner) ) {
+                if ( k.test(key) === false ) { continue; }
+                out.push(key);
+            }
+            return out;
+        }
+        return [ k ];
     }
     #getMatchesFromExpr(pathin, step, owner, out) {
         const recursive = step.mv === this.#DESCENDANTS;
-        if ( Array.isArray(owner) === false ) {
-            const r = this.#evaluate(step.steps, pathin);
-            if ( r.length !== 0 ) { out.push(pathin); }
-            if ( recursive !== true ) { return; }
-        }
-        for ( const { obj, key, path } of this.#getDescendants(owner, recursive) ) {
-            if ( Array.isArray(obj[key]) ) { continue; }
-            const q = [ ...pathin, ...path ];
+        for ( const { path } of this.#getDescendants(owner, recursive) ) {
+            const q = this.#compiled.v2 ? [ ...pathin, ...path ] : pathin;
             const r = this.#evaluate(step.steps, q);
-            if ( r.length === 0 ) { continue; }
+            if ( Boolean(r?.length) === false ) { continue; }
             out.push(q);
+            if ( this.#compiled.v2 === false ) { break; }
         }
-    }
-    #normalizeKey(owner, key) {
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) ) {
-                return key >= 0 ? key : owner.length + key;
-            }
-        }
-        return key;
     }
     #getDescendants(v, recursive) {
         const iterator = {
@@ -15745,7 +19757,7 @@ class JSONPath {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
                     } else if ( typeof v === 'object' && v !== null ) {
-                        this.stack.push({ obj: v, keys: Object.keys(v).values() });
+                        this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
                 }
                 return this;
@@ -15759,7 +19771,7 @@ class JSONPath {
         if ( Array.isArray(v) ) {
             iterator.stack.push({ obj: v, keys: v.keys() });
         } else if ( typeof v === 'object' && v !== null ) {
-            iterator.stack.push({ obj: v, keys: Object.keys(v).values() });
+            iterator.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
         }
         return iterator;
     }
@@ -15768,12 +19780,12 @@ class JSONPath {
         for (;;) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ ) {
+            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
                 i += 1;
                 continue;
             }
-            if ( c0 === 0x27 /* ' */ ) {
-                const r = this.#untilChar(query, 0x27 /* ' */, i+1)
+            if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
+                const r = this.#untilChar(query, c0, i+1);
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
@@ -15787,17 +19799,24 @@ class JSONPath {
                 i += match[0].length;
                 continue;
             }
-            const s = this.#consumeUnquotedIdentifier(query, i);
-            if ( s === undefined ) { return; }
-            keys.push(s);
-            i += s.length;
+            const r = this.#consumeUnquotedIdentifier(query, i);
+            if ( r === undefined ) { return; }
+            keys.push(r.s);
+            i = r.i;
         }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
+        if ( query.charCodeAt(i) === 0x2F /* / */ ) {
+            const r = this.#untilChar(query, 0x2F, i+1);
+            if ( r === undefined ) { return; }
+            let re;
+            try { re = new JSONPath.Regex(r.s); } catch { return; }
+            return { s: re, i: r.i };
+        }
         const match = this.#reUnquotedIdentifier.exec(query.slice(i));
         if ( match === null ) { return; }
-        return match[0];
+        return { s: match[0], i: i + match[0].length };
     }
     #untilChar(query, targetCharCode, i) {
         const len = query.length;
@@ -15829,22 +19848,27 @@ class JSONPath {
             if ( r === undefined ) { return i; }
             const match = /^[i]/.exec(query.slice(r.i));
             try {
-                step.rval = new RegExp(r.s, match && match[0] || undefined);
-            } catch {
-                return i;
-            }
+                step.rval = new JSONPath.Regex(r.s, match && match[0] || undefined);
+            } catch { return; }
             step.op = 're';
             if ( match ) { r.i += match[0].length; }
             return r.i;
         }
         const match = this.#reExpr.exec(query.slice(i));
-        if ( match === null ) { return i; }
-        try {
-            step.rval = JSON.parse(match[2]);
-            step.op = match[1];
-        } catch {
+        if ( match === null ) { return; }
+        const op = match[1], rval = match[2];
+        if ( rval.charCodeAt(0) === 0x27 /* ' */ ) {
+            const r = this.#untilChar(rval, 0x27, 1);
+            if ( r === undefined ) { return; }
+            step.rval = r.s;
+            step.op = op;
+        } else {
+            try {
+                step.rval = JSON.parse(rval);
+                step.op = op;
+            } catch { return; }
         }
-        return i + match[1].length + match[2].length;
+        return i + match[0].length - 1;
     }
     #resolvePath(path) {
         if ( path.length === 0 ) { return { value: this.#root }; }
@@ -15855,31 +19879,26 @@ class JSONPath {
         }
         return { obj, key, value: obj[key] };
     }
-    #evaluateExpr(step, owner, key) {
+    #evaluateExpr(step, owner, k) {
         if ( owner === undefined || owner === null ) { return; }
-        if ( typeof key === 'number' ) {
-            if ( Array.isArray(owner) === false ) { return; }
-        }
-        const k = this.#normalizeKey(owner, key);
-        const hasOwn = Object.hasOwn(owner, k);
+        const hasOwn = owner[k] !== undefined || JSONPath.hasOwn(owner, k);
         if ( step.op !== undefined && hasOwn === false ) { return; }
         const target = step.not !== true;
         const v = owner[k];
-        let outcome = false;
         switch ( step.op ) {
-        case '==': outcome = (v === step.rval) === target; break;
-        case '!=': outcome = (v !== step.rval) === target; break;
-        case  '<': outcome = (v < step.rval) === target; break;
-        case '<=': outcome = (v <= step.rval) === target; break;
-        case  '>': outcome = (v > step.rval) === target; break;
-        case '>=': outcome = (v >= step.rval) === target; break;
-        case '^=': outcome = `${v}`.startsWith(step.rval) === target; break;
-        case '$=': outcome = `${v}`.endsWith(step.rval) === target; break;
-        case '*=': outcome = `${v}`.includes(step.rval) === target; break;
-        case 're': outcome = step.rval.test(`${v}`); break;
-        default: outcome = hasOwn === target; break;
+        case '==': return (v === step.rval) === target;
+        case '!=': return (v !== step.rval) === target;
+        case  '<': return (v < step.rval) === target;
+        case '<=': return (v <= step.rval) === target;
+        case  '>': return (v > step.rval) === target;
+        case '>=': return (v >= step.rval) === target;
+        case '^=': return `${v}`.startsWith(step.rval) === target;
+        case '$=': return `${v}`.endsWith(step.rval) === target;
+        case '*=': return `${v}`.includes(step.rval) === target;
+        case 're': return step.rval.test(`${v}`);
+        default: break;
         }
-        if ( outcome ) { return k; }
+        return hasOwn === target;
     }
     #modifyVal(obj, key) {
         let { modify, rval } = this.#compiled;
@@ -15895,9 +19914,21 @@ class JSONPath {
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
             if ( Array.isArray(lval) ) { return; }
-            for ( const [ k, v ] of Object.entries(rval) ) {
+            for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
+            break;
+        }
+        case 'call': {
+            const entries = rval.slice();
+            if ( entries.length < 2 ) { break; }
+            entries.forEach((a, i, aa) => {
+                if ( a === '${obj}' ) { aa[i] = obj; }
+                else if ( a === '${key}' ) { aa[i] = key; }
+                else if ( a === '${val}' ) { aa[i] = obj[key]; }
+            });
+            const instance = entries[0] ?? self;
+            instance[entries[1]](...entries.slice(2));
             break;
         }
         case 'repl': {
@@ -15907,10 +19938,9 @@ class JSONPath {
                 this.#compiled.re = null;
                 try {
                     this.#compiled.re = rval.regex !== undefined
-                        ? new RegExp(rval.regex, rval.flags)
-                        : new RegExp(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-                } catch {
-                }
+                        ? new JSONPath.Regex(rval.regex, rval.flags)
+                        : new JSONPath.Regex(rval.pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+                } catch { }
             }
             if ( this.#compiled.re === null ) { return; }
             obj[key] = lval.replace(this.#compiled.re, rval.replacement);
@@ -16041,18 +20071,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -16379,18 +20397,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -16749,18 +20755,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -17239,18 +21233,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -17720,18 +21702,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -18254,18 +22224,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -18735,18 +22693,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -19194,18 +23140,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -19507,18 +23441,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -19822,18 +23744,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -20236,18 +24146,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -20661,18 +24559,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -21177,18 +25063,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -21494,18 +25368,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -21746,18 +25608,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -22004,18 +25854,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -22224,18 +26062,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -22575,18 +26401,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -22926,18 +26740,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -23376,18 +27178,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -23945,18 +27735,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -24431,18 +28209,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -24864,18 +28630,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -25297,18 +29051,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -25601,7 +29343,7 @@ function trustedReplaceArgument(
         replacer = ( ) => value;
     }
     const reCondition = extraArgs.condition
-        ? safe.patternToRegex(extraArgs.condition)
+        ? safe.patternToRegex(`${extraArgs.condition}`)
         : /^/;
     const getArg = context => {
         if ( argposRaw === 'this' ) { return context.thisArg; }
@@ -25769,18 +29511,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -26163,18 +29893,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -26497,18 +30215,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -26834,18 +30540,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -27159,18 +30853,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -27410,18 +31092,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -27784,18 +31454,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -28092,18 +31750,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -28400,18 +32046,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -28708,18 +32342,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -28928,18 +32550,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -29255,18 +32865,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -29517,18 +33115,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -29757,18 +33343,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -29984,18 +33558,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -30211,18 +33773,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -30436,18 +33986,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -30580,7 +34118,7 @@ function removeClass(
             }
         }
         if ( skip ) { return; }
-        timer = safe.onIdle(rmclass, { timeout: 67 });
+        timer = onIdleFn(rmclass, { timeout: 67 });
     };
     const observer = new MutationObserver(mutationHandler);
     const start = ( ) => {
@@ -30726,18 +34264,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -30984,18 +34510,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -31364,18 +34878,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -31751,18 +35253,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -32089,18 +35579,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -32542,18 +36020,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -32798,18 +36264,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -33111,18 +36565,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -33326,7 +36768,7 @@ function proxyApplyFn(
     context[prop] = proxiedTarget;
 }
 function breakOnCall(target) {
-    proxyApplyFn(target, function fetch(context) {
+    proxyApplyFn(target, function(context) {
         debugger;  // eslint-disable-line no-debugger
         return context.reflect();
     });
@@ -33489,18 +36931,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -33842,18 +37272,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -34157,18 +37575,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -34336,6 +37742,108 @@ function runAtHtmlElementFn(fn) {
     });
     observer.observe(document, { childList: true });
 }
+function onIdleFn(fn, options) {
+    if ( self.requestIdleCallback ) {
+        return self.requestIdleCallback(fn, options);
+    }
+    return self.requestAnimationFrame(fn);
+}
+function offIdleFn(id) {
+    if ( self.requestIdleCallback ) {
+        return self.cancelIdleCallback(id);
+    }
+    return self.cancelAnimationFrame(id);
+}
+function lookupElementsFn(directive, until = 0) {
+    if ( lookupElementsFn.querySelectorEx === undefined ) {
+        lookupElementsFn.getShadowRoot = elem => {
+            if ( elem.openOrClosedShadowRoot ) { // Firefox
+                return elem.openOrClosedShadowRoot;
+            }
+            if ( typeof chrome === 'object' ) { // Chromium
+                if ( chrome.dom && chrome.dom.openOrClosedShadowRoot ) {
+                    return chrome.dom.openOrClosedShadowRoot(elem);
+                }
+            }
+            return elem.shadowRoot;
+        };
+        lookupElementsFn.queryOrEvaluateSelector = (selector, context) => {
+            if ( selector.startsWith('xpath:') === false ) {
+                return Array.from(context.querySelectorAll(selector));
+            }
+            const result = document.evaluate(selector.slice(6), context, null, 7, null);
+            const out = [];
+            if ( result.resultType === 7 ) {
+                for ( let i = 0; i < result.snapshotLength; i++ ) {
+                    out[i] = result.snapshotItem(i);
+                }
+            }
+            return out;
+        }
+        lookupElementsFn.querySelectorEx = (selector, context = document) => {
+            const pos = selector.indexOf(' >>> ');
+            if ( pos === -1 ) {
+                return lookupElementsFn.queryOrEvaluateSelector(selector, context);
+            }
+            const outside = selector.slice(0, pos).trim();
+            const inside = selector.slice(pos + 5).trim();
+            const elems = lookupElementsFn.queryOrEvaluateSelector(outside, context);
+            const out = [];
+            for ( let i = 0; i < elems.length; i++ ) {
+                const shadowRoot = lookupElementsFn.getShadowRoot(elems[i]);
+                if ( Boolean(shadowRoot) === false ) { continue; }
+                lookupElementsFn.querySelectorEx(inside, shadowRoot).forEach(a => out.push(a));
+            }
+            return out;
+        };
+        lookupElementsFn.lookup = directive => {
+            const beVisible = directive.startsWith('when-visible:');
+            const selector = beVisible ? directive.slice(13) : directive;
+            const elems = lookupElementsFn.querySelectorEx(selector);
+            if ( beVisible !== true ) { return elems; }
+            return elems.filter(a => a.checkVisibility({
+                opacityProperty: true,
+                visibilityProperty: true,
+            }));
+        };
+        lookupElementsFn.lookupAsync = details => {
+            const elems = lookupElementsFn.lookup(details.directive);
+            if ( elems.length || Date.now() >= details.until ) {
+                if ( details.observer ) {
+                    details.observer.disconnect();
+                    details.observer = undefined;
+                }
+                if ( details.timer ) {
+                    offIdleFn(details.timer);
+                    details.timer = undefined;
+                }
+                return details.resolve(elems);
+            }
+            if ( details.observer === undefined ) {
+                details.observer = new MutationObserver(( ) => {
+                    lookupElementsFn.lookupAsync(details);
+                });
+                details.observer.observe(document, {
+                    attributes: true,
+                    childList: true,
+                    subtree: true,
+                });
+            }
+            if ( details.timer === undefined ) {
+                details.timer = onIdleFn(( ) => {
+                    details.timer = undefined;
+                    lookupElementsFn.lookupAsync(details);
+                }, { timeout: 151 });
+            }
+        };
+    }
+    if ( until === 0 ) {
+        return lookupElementsFn.lookup(directive);
+    }
+    return new Promise(resolve => {
+        lookupElementsFn.lookupAsync({ directive, until, resolve });
+    });
+}
 function getAllLocalStorageFn(which = 'localStorage') {
     const storage = self[which];
     const out = [];
@@ -34466,18 +37974,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -34599,31 +38095,6 @@ function trustedClickElement(
         }
     }
 
-    const getShadowRoot = elem => {
-        // Firefox
-        if ( elem.openOrClosedShadowRoot ) {
-            return elem.openOrClosedShadowRoot;
-        }
-        // Chromium
-        if ( typeof chrome === 'object' ) {
-            if ( chrome.dom && chrome.dom.openOrClosedShadowRoot ) {
-                return chrome.dom.openOrClosedShadowRoot(elem);
-            }
-        }
-        return elem.shadowRoot;
-    };
-
-    const querySelectorEx = (selector, context = document) => {
-        const pos = selector.indexOf(' >>> ');
-        if ( pos === -1 ) { return context.querySelector(selector); }
-        const outside = selector.slice(0, pos).trim();
-        const inside = selector.slice(pos + 5).trim();
-        const elem = context.querySelector(outside);
-        if ( elem === null ) { return null; }
-        const shadowRoot = getShadowRoot(elem);
-        return shadowRoot && querySelectorEx(inside, shadowRoot);
-    };
-
     const steps = safe.String_split.call(selectors, /\s*,\s*/).map(a => {
         if ( /^\d+$/.test(a) ) { return parseInt(a, 10); }
         return a;
@@ -34639,8 +38110,10 @@ function trustedClickElement(
         steps.unshift(clickDelay);
     }
     if ( typeof steps.at(-1) !== 'number' ) {
-        steps.push(10000);
+        steps.push(11000);
     }
+
+    const timeout = steps.pop();
 
     const waitForTime = ms => {
         return new Promise(resolve => {
@@ -34651,66 +38124,18 @@ function trustedClickElement(
             }, ms);
         });
     };
-    waitForTime.cancel = ( ) => {
-        const { timer } = waitForTime;
-        if ( timer === undefined ) { return; }
-        clearTimeout(timer);
-        waitForTime.timer = undefined;
-    };
 
-    const waitForElement = selector => {
-        return new Promise(resolve => {
-            const elem = querySelectorEx(selector);
-            if ( elem !== null ) {
-                elem.click();
-                resolve();
-                return;
-            }
-            safe.uboLog(logPrefix, `Waiting for ${selector}`);
-            const observer = new MutationObserver(( ) => {
-                const elem = querySelectorEx(selector);
-                if ( elem === null ) { return; }
-                waitForElement.cancel();
-                elem.click();
-                resolve();
-            });
-            observer.observe(document, {
-                attributes: true,
-                childList: true,
-                subtree: true,
-            });
-            waitForElement.observer = observer;
+    const waitForElement = directive => {
+        safe.uboLog(logPrefix, `Waiting for ${directive}`);
+        return lookupElementsFn(directive, Date.now() + timeout).then(elems => {
+            if ( elems.length === 0 ) { return false; }
+            elems[0].click();
+            safe.uboLog(logPrefix, `Clicked ${directive}`);
+            return true;
         });
-    };
-    waitForElement.cancel = ( ) => {
-        const { observer } = waitForElement;
-        if ( observer === undefined ) { return; }
-        waitForElement.observer = undefined;
-        observer.disconnect();
-    };
-
-    const waitForTimeout = ms => {
-        waitForTimeout.cancel();
-        waitForTimeout.timer = setTimeout(( ) => {
-            waitForTimeout.timer = undefined;
-            terminate();
-            safe.uboLog(logPrefix, `Timed out after ${ms} ms`);
-        }, ms);
-    };
-    waitForTimeout.cancel = ( ) => {
-        if ( waitForTimeout.timer === undefined ) { return; }
-        clearTimeout(waitForTimeout.timer);
-        waitForTimeout.timer = undefined;
-    };
-
-    const terminate = ( ) => {
-        waitForTime.cancel();
-        waitForElement.cancel();
-        waitForTimeout.cancel();
     };
 
     const process = async ( ) => {
-        waitForTimeout(steps.pop());
         while ( steps.length !== 0 ) {
             const step = steps.shift();
             if ( step === undefined ) { break; }
@@ -34720,10 +38145,11 @@ function trustedClickElement(
                 continue;
             }
             if ( step.startsWith('!') ) { continue; }
-            await waitForElement(step);
-            safe.uboLog(logPrefix, `Clicked ${step}`);
+            const clicked = await waitForElement(step);
+            if ( clicked ) { continue; }
+            safe.uboLog(logPrefix, `Timed out waiting on ${step}`);
+            break;
         }
-        terminate();
     };
 
     runAtHtmlElementFn(process);
@@ -34858,18 +38284,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -35289,18 +38703,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -35616,18 +39018,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
@@ -36002,18 +39392,6 @@ function safeSelf() {
             }, []);
             return this.Object_fromEntries(entries);
         },
-        onIdle(fn, options) {
-            if ( self.requestIdleCallback ) {
-                return self.requestIdleCallback(fn, options);
-            }
-            return self.requestAnimationFrame(fn);
-        },
-        offIdle(id) {
-            if ( self.requestIdleCallback ) {
-                return self.cancelIdleCallback(id);
-            }
-            return self.cancelAnimationFrame(id);
-        }
     };
     scriptletGlobals.safeSelf = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
