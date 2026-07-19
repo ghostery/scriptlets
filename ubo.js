@@ -23,111 +23,97 @@
 const scriptlets = {};
 
 
-scriptlets['set-attr.js'] = {
-aliases: [],
-world: 'ISOLATED',
+scriptlets['abort-current-script.js'] = {
+aliases: ["abort-current-inline-script.js","acis.js","acs.js"],
+
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
-function runAt(fn, when) {
-    const intFromReadyState = state => {
-        const targets = {
-            'loading': 1, 'asap': 1,
-            'interactive': 2, 'end': 2, '2': 2,
-            'complete': 3, 'idle': 3, '3': 3,
-        };
-        const tokens = Array.isArray(state) ? state : [ state ];
-        for ( const token of tokens ) {
-            const prop = `${token}`;
-            if ( Object.hasOwn(targets, prop) === false ) { continue; }
-            return targets[prop];
-        }
-        return 0;
-    };
-    const runAt = intFromReadyState(when);
-    if ( intFromReadyState(document.readyState) >= runAt ) {
-        fn(); return;
-    }
-    const onStateChange = ( ) => {
-        if ( intFromReadyState(document.readyState) < runAt ) { return; }
+function runAtHtmlElementFn(fn) {
+    if ( document.documentElement ) {
         fn();
-        safe.removeEventListener.apply(document, args);
-    };
-    const safe = safeSelf();
-    const args = [ 'readystatechange', onStateChange, { capture: true } ];
-    safe.addEventListener.apply(document, args);
+        return;
+    }
+    const observer = new MutationObserver(( ) => {
+        observer.disconnect();
+        fn();
+    });
+    observer.observe(document, { childList: true });
 }
-function setAttrFn(
-    trusted = false,
-    logPrefix,
-    selector = '',
-    attr = '',
-    value = '',
-    options = {}
-) {
-    if ( selector === '' ) { return; }
-    if ( attr === '' ) { return; }
-
+function trapPropertyFn(propChain, handler, options = {}) {
+    if ( propChain === '' ) { return; }
+    let owner = self;
+    let prop = propChain;
+    for (;;) {
+        const pos = prop.indexOf('.');
+        if ( pos === -1 ) { break; }
+        owner = owner[prop.slice(0, pos)];
+        if ( owner instanceof Object === false ) { return; }
+        prop = prop.slice(pos + 1);
+    }
     const safe = safeSelf();
-    const copyFrom = trusted === false && /^\[.+\]$/.test(value)
-        ? value.slice(1, -1)
-        : '';
-
-    const extractValue = elem => copyFrom !== ''
-        ? elem.getAttribute(copyFrom) || ''
-        : value;
-
-    const applySetAttr = ( ) => {
-        let elems;
-        try {
-            elems = document.querySelectorAll(selector);
-        } catch {
-            return false;
-        }
-        for ( const elem of elems ) {
-            const before = elem.getAttribute(attr);
-            const after = extractValue(elem);
-            if ( after === before ) { continue; }
-            if ( after !== '' && /^on/i.test(attr) ) {
-                if ( attr.toLowerCase() in elem ) { continue; }
+    if ( trapPropertyFn.db === undefined ) {
+        trapPropertyFn.db = new WeakMap();
+        trapPropertyFn.entryFromContext = (owner, prop) => {
+            const handlers = trapPropertyFn.db.get(owner);
+            return handlers?.get(prop);
+        };
+        trapPropertyFn.getter = (owner, prop) => {
+            const entry = trapPropertyFn.entryFromContext(owner, prop);
+            if ( entry === undefined ) { return; }
+            let r = entry.value;
+            for ( const desc of entry.stack ) {
+                try { r = desc.get(); } catch (e) {
+                    if ( entry.canThrow ) { throw e; }
+                }
             }
-            elem.setAttribute(attr, after);
-            safe.uboLog(logPrefix, `${attr}="${after}"`);
-        }
-        return true;
+            return r;
+        };
+        trapPropertyFn.setter = (owner, prop, value) => {
+            const entry = trapPropertyFn.entryFromContext(owner, prop);
+            if ( entry === undefined ) { return; }
+            entry.value = value;
+            for ( const desc of entry.stack ) {
+                try { desc.set(value); } catch (e) {
+                    if ( entry.canThrow ) { throw e; }
+                }
+            }
+        };
+    }
+    const { db } = trapPropertyFn;
+    const handlers = db.get(owner) || new Map();
+    if ( handlers.size === 0 ) {
+        db.set(owner, handlers);
+    }
+    const entry = handlers.get(prop) || {
+        value: owner[prop],
+        stack: [],
     };
-
-    let observer, timer;
-    const onDomChanged = mutations => {
-        if ( timer !== undefined ) { return; }
-        let shouldWork = false;
-        for ( const mutation of mutations ) {
-            if ( mutation.addedNodes.length === 0 ) { continue; }
-            for ( const node of mutation.addedNodes ) {
-                if ( node.nodeType !== 1 ) { continue; }
-                shouldWork = true;
-                break;
-            }
-            if ( shouldWork ) { break; }
+    entry.stack.push(handler);
+    if ( entry.stack.length > 1 ) { return entry.value; }
+    Object.assign(entry, options);
+    handlers.set(prop, entry);
+    const desc = safe.Object_getOwnPropertyDescriptor(owner, prop);
+    if ( desc instanceof safe.Object ) {
+        if ( desc.get || desc.set ) {
+            entry.stack.push(desc);
         }
-        if ( shouldWork === false ) { return; }
-        timer = self.requestAnimationFrame(( ) => {
-            timer = undefined;
-            applySetAttr();
+    }
+    try {
+        safe.Object_defineProperty(owner, prop, {
+            get() {
+                return trapPropertyFn.getter(this, prop);
+            },
+            set(value) {
+                trapPropertyFn.setter(this, prop, value);
+            }
         });
-    };
-
-    const start = ( ) => {
-        if ( applySetAttr() === false ) { return; }
-        observer = new MutationObserver(onDomChanged);
-        const root = document.documentElement;
-        if ( root instanceof self.Node === false ) { return; }
-        observer.observe(root, { subtree: true, childList: true });
-    };
-    runAt(( ) => { start(); }, options.runAt || 'idle');
+    } catch {
+    }
+    return entry.value;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -246,7 +232,375 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function getRandomTokenFn() {
+    const safe = safeSelf();
+    return safe.String_fromCharCode(Date.now() % 26 + 97) +
+        safe.Math_floor(safe.Math_random() * 982451653 + 982451653).toString(36);
+}
+function getExceptionTokenFn() {
+    const token = getRandomTokenFn();
+    const oe = self.onerror;
+    self.onerror = function(msg, ...args) {
+        if ( typeof msg === 'string' && msg.includes(token) ) { return true; }
+        if ( oe instanceof Function ) {
+            return oe.call(this, msg, ...args);
+        }
+    }.bind();
+    return token;
+}
+function abortCurrentScriptFn(
+    target = '',
+    needle = '',
+    context = ''
+) {
+    if ( typeof target !== 'string' ) { return; }
+    if ( target === '' ) { return; }
+    const safe = safeSelf();
+    const logPrefix = safe.makeLogPrefix('abort-current-script', target, needle, context);
+    const reNeedle = safe.patternToRegex(needle);
+    const reContext = safe.patternToRegex(context);
+    const thisScript = document.currentScript;
+    const exceptionToken = getExceptionTokenFn();
+    const scriptTexts = new WeakMap();
+    const textContentGetter = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent').get;
+    const getScriptText = elem => {
+        let text = textContentGetter.call(elem);
+        if ( text.trim() !== '' ) { return text; }
+        if ( scriptTexts.has(elem) ) { return scriptTexts.get(elem); }
+        const [ , mime, content ] = /^data:([^,]*),(.+)$/.exec(elem.src.trim()) ||
+            [ '', '', '' ];
+        try {
+            switch ( true ) {
+            case mime.endsWith(';base64'):
+                text = self.atob(content);
+                break;
+            default:
+                text = self.decodeURIComponent(content);
+                break;
+            }
+        } catch {
+        }
+        scriptTexts.set(elem, text);
+        return text;
+    };
+    const validate = ( ) => {
+        const e = document.currentScript;
+        if ( e instanceof HTMLScriptElement === false ) { return; }
+        if ( e === thisScript ) { return; }
+        if ( context !== '' && reContext.test(e.src) === false ) { return; }
+        if ( safe.logLevel > 1 && context !== '' ) {
+            safe.uboLog(logPrefix, `Matched src\n${e.src}`);
+        }
+        const scriptText = getScriptText(e);
+        if ( reNeedle.test(scriptText) === false ) { return; }
+        if ( safe.logLevel > 1 ) {
+            safe.uboLog(logPrefix, `Matched text\n${scriptText}`);
+        }
+        safe.uboLog(logPrefix, 'Aborted');
+        throw new ReferenceError(exceptionToken);
+    };
+    let currentValue = trapPropertyFn(target, {
+        get: function() {
+            validate();
+            return currentValue;
+        },
+        set: function(a) {
+            validate();
+            currentValue = a;
+        }
+    }, { canThrow: true });
+}
+function abortCurrentScript(...args) {
+    runAtHtmlElementFn(( ) => {
+        abortCurrentScriptFn(...args);
+    });
+};
+abortCurrentScript(...args);
+},
+};
+
+
+scriptlets['set-attr.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: false,
+func: function (scriptletGlobals = {}, ...args) {
+function runAt(fn, when) {
+    const intFromReadyState = state => {
+        const targets = {
+            'loading': 1, 'asap': 1,
+            'interactive': 2, 'end': 2, '2': 2,
+            'complete': 3, 'idle': 3, '3': 3,
+        };
+        const tokens = Array.isArray(state) ? state : [ state ];
+        for ( const token of tokens ) {
+            const prop = `${token}`;
+            if ( Object.hasOwn(targets, prop) === false ) { continue; }
+            return targets[prop];
+        }
+        return 0;
+    };
+    const runAt = intFromReadyState(when);
+    if ( intFromReadyState(document.readyState) >= runAt ) {
+        fn(); return;
+    }
+    const onStateChange = ( ) => {
+        if ( intFromReadyState(document.readyState) < runAt ) { return; }
+        fn();
+        safe.removeEventListener.apply(document, args);
+    };
+    const safe = safeSelf();
+    const args = [ 'readystatechange', onStateChange, { capture: true } ];
+    safe.addEventListener.apply(document, args);
+}
+function setAttrFn(
+    trusted = false,
+    logPrefix,
+    selector = '',
+    attr = '',
+    value = '',
+    options = {}
+) {
+    if ( selector === '' ) { return; }
+    if ( attr === '' ) { return; }
+
+    const safe = safeSelf();
+    const copyFrom = trusted === false && /^\[.+\]$/.test(value)
+        ? value.slice(1, -1)
+        : '';
+
+    const extractValue = elem => copyFrom !== ''
+        ? elem.getAttribute(copyFrom) || ''
+        : value;
+
+    const applySetAttr = ( ) => {
+        let elems;
+        try {
+            elems = document.querySelectorAll(selector);
+        } catch {
+            return false;
+        }
+        for ( const elem of elems ) {
+            const before = elem.getAttribute(attr);
+            const after = extractValue(elem);
+            if ( after === before ) { continue; }
+            if ( after !== '' && /^on/i.test(attr) ) {
+                if ( attr.toLowerCase() in elem ) { continue; }
+            }
+            elem.setAttribute(attr, after);
+            safe.uboLog(logPrefix, `${attr}="${after}"`);
+        }
+        return true;
+    };
+
+    let observer, timer;
+    const onDomChanged = mutations => {
+        if ( timer !== undefined ) { return; }
+        let shouldWork = false;
+        for ( const mutation of mutations ) {
+            if ( mutation.addedNodes.length === 0 ) { continue; }
+            for ( const node of mutation.addedNodes ) {
+                if ( node.nodeType !== 1 ) { continue; }
+                shouldWork = true;
+                break;
+            }
+            if ( shouldWork ) { break; }
+        }
+        if ( shouldWork === false ) { return; }
+        timer = self.requestAnimationFrame(( ) => {
+            timer = undefined;
+            applySetAttr();
+        });
+    };
+
+    const start = ( ) => {
+        if ( applySetAttr() === false ) { return; }
+        observer = new MutationObserver(onDomChanged);
+        const root = document.documentElement;
+        if ( root instanceof self.Node === false ) { return; }
+        observer.observe(root, { subtree: true, childList: true });
+    };
+    runAt(( ) => { start(); }, options.runAt || 'idle');
+}
+function safeSelf() {
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'Object_toString': Object.prototype.toString,
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+    };
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -431,8 +785,8 @@ function setAttrFn(
     runAt(( ) => { start(); }, options.runAt || 'idle');
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -551,7 +905,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -629,8 +983,8 @@ aliases: ["ra.js"],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -749,7 +1103,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -928,8 +1282,8 @@ world: 'ISOLATED',
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -1048,7 +1402,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -1315,8 +1669,8 @@ function urlSkip(url, blocked, steps) {
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -1435,7 +1789,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -1634,8 +1988,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -1754,7 +2108,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -1932,8 +2286,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -1953,7 +2307,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -2085,6 +2439,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -2267,11 +2622,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -2279,6 +2641,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -2287,13 +2650,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -2483,8 +2849,8 @@ aliases: [],
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -2603,7 +2969,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -2781,8 +3147,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -2802,7 +3168,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -2934,6 +3300,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -3116,11 +3483,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -3128,6 +3502,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -3136,13 +3511,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -3332,8 +3710,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -3452,7 +3830,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -3630,8 +4008,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -3651,7 +4029,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -3783,6 +4161,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -3965,11 +4344,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -3977,6 +4363,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -3985,13 +4372,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -4181,8 +4571,8 @@ aliases: [],
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -4301,7 +4691,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -4479,8 +4869,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -4500,7 +4890,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -4632,6 +5022,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -4814,11 +5205,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -4826,6 +5224,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -4834,13 +5233,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -5030,8 +5432,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -5150,7 +5552,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -5328,8 +5730,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -5349,7 +5751,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -5481,6 +5883,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -5663,11 +6066,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -5675,6 +6085,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -5683,13 +6094,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -5906,8 +6320,8 @@ aliases: [],
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -6026,7 +6440,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -6204,8 +6618,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -6225,7 +6639,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -6357,6 +6771,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -6539,11 +6954,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -6551,6 +6973,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -6559,13 +6982,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -6782,8 +7208,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -6902,7 +7328,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -7080,8 +7506,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -7101,7 +7527,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -7233,6 +7659,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -7415,11 +7842,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -7427,6 +7861,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -7435,13 +7870,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -7641,8 +8079,8 @@ aliases: [],
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -7761,7 +8199,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -7939,8 +8377,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -7960,7 +8398,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -8092,6 +8530,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -8274,11 +8713,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -8286,6 +8732,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -8294,13 +8741,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -8499,7 +8949,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
-function trapPropertyFn(propChain, handler) {
+function trapPropertyFn(propChain, handler, options = {}) {
     if ( propChain === '' ) { return; }
     let owner = self;
     let prop = propChain;
@@ -8522,7 +8972,9 @@ function trapPropertyFn(propChain, handler) {
             if ( entry === undefined ) { return; }
             let r = entry.value;
             for ( const desc of entry.stack ) {
-                try { r = desc.get(); } catch { }
+                try { r = desc.get(); } catch (e) {
+                    if ( entry.canThrow ) { throw e; }
+                }
             }
             return r;
         };
@@ -8531,7 +8983,9 @@ function trapPropertyFn(propChain, handler) {
             if ( entry === undefined ) { return; }
             entry.value = value;
             for ( const desc of entry.stack ) {
-                try { desc.set(value); } catch { }
+                try { desc.set(value); } catch (e) {
+                    if ( entry.canThrow ) { throw e; }
+                }
             }
         };
     }
@@ -8546,6 +9000,7 @@ function trapPropertyFn(propChain, handler) {
     };
     entry.stack.push(handler);
     if ( entry.stack.length > 1 ) { return entry.value; }
+    Object.assign(entry, options);
     handlers.set(prop, entry);
     const desc = safe.Object_getOwnPropertyDescriptor(owner, prop);
     if ( desc instanceof safe.Object ) {
@@ -8567,8 +9022,8 @@ function trapPropertyFn(propChain, handler) {
     return entry.value;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -8687,7 +9142,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -8770,8 +9225,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -8791,7 +9246,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -8923,6 +9378,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -9105,11 +9561,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -9117,6 +9580,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -9125,13 +9589,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -9328,7 +9795,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
-function trapPropertyFn(propChain, handler) {
+function trapPropertyFn(propChain, handler, options = {}) {
     if ( propChain === '' ) { return; }
     let owner = self;
     let prop = propChain;
@@ -9351,7 +9818,9 @@ function trapPropertyFn(propChain, handler) {
             if ( entry === undefined ) { return; }
             let r = entry.value;
             for ( const desc of entry.stack ) {
-                try { r = desc.get(); } catch { }
+                try { r = desc.get(); } catch (e) {
+                    if ( entry.canThrow ) { throw e; }
+                }
             }
             return r;
         };
@@ -9360,7 +9829,9 @@ function trapPropertyFn(propChain, handler) {
             if ( entry === undefined ) { return; }
             entry.value = value;
             for ( const desc of entry.stack ) {
-                try { desc.set(value); } catch { }
+                try { desc.set(value); } catch (e) {
+                    if ( entry.canThrow ) { throw e; }
+                }
             }
         };
     }
@@ -9375,6 +9846,7 @@ function trapPropertyFn(propChain, handler) {
     };
     entry.stack.push(handler);
     if ( entry.stack.length > 1 ) { return entry.value; }
+    Object.assign(entry, options);
     handlers.set(prop, entry);
     const desc = safe.Object_getOwnPropertyDescriptor(owner, prop);
     if ( desc instanceof safe.Object ) {
@@ -9396,8 +9868,8 @@ function trapPropertyFn(propChain, handler) {
     return entry.value;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -9516,7 +9988,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -9599,8 +10071,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -9620,7 +10092,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -9752,6 +10224,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -9934,11 +10407,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -9946,6 +10426,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -9954,13 +10435,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -10157,7 +10641,7 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
-function trapPropertyFn(propChain, handler) {
+function trapPropertyFn(propChain, handler, options = {}) {
     if ( propChain === '' ) { return; }
     let owner = self;
     let prop = propChain;
@@ -10180,7 +10664,9 @@ function trapPropertyFn(propChain, handler) {
             if ( entry === undefined ) { return; }
             let r = entry.value;
             for ( const desc of entry.stack ) {
-                try { r = desc.get(); } catch { }
+                try { r = desc.get(); } catch (e) {
+                    if ( entry.canThrow ) { throw e; }
+                }
             }
             return r;
         };
@@ -10189,7 +10675,9 @@ function trapPropertyFn(propChain, handler) {
             if ( entry === undefined ) { return; }
             entry.value = value;
             for ( const desc of entry.stack ) {
-                try { desc.set(value); } catch { }
+                try { desc.set(value); } catch (e) {
+                    if ( entry.canThrow ) { throw e; }
+                }
             }
         };
     }
@@ -10204,6 +10692,7 @@ function trapPropertyFn(propChain, handler) {
     };
     entry.stack.push(handler);
     if ( entry.stack.length > 1 ) { return entry.value; }
+    Object.assign(entry, options);
     handlers.set(prop, entry);
     const desc = safe.Object_getOwnPropertyDescriptor(owner, prop);
     if ( desc instanceof safe.Object ) {
@@ -10225,8 +10714,8 @@ function trapPropertyFn(propChain, handler) {
     return entry.value;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -10345,7 +10834,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -10428,8 +10917,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -10449,7 +10938,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -10581,6 +11070,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -10763,11 +11253,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -10775,6 +11272,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -10783,13 +11281,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -10989,7 +11490,7 @@ aliases: [],
 
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
-function trapPropertyFn(propChain, handler) {
+function trapPropertyFn(propChain, handler, options = {}) {
     if ( propChain === '' ) { return; }
     let owner = self;
     let prop = propChain;
@@ -11012,7 +11513,9 @@ function trapPropertyFn(propChain, handler) {
             if ( entry === undefined ) { return; }
             let r = entry.value;
             for ( const desc of entry.stack ) {
-                try { r = desc.get(); } catch { }
+                try { r = desc.get(); } catch (e) {
+                    if ( entry.canThrow ) { throw e; }
+                }
             }
             return r;
         };
@@ -11021,7 +11524,9 @@ function trapPropertyFn(propChain, handler) {
             if ( entry === undefined ) { return; }
             entry.value = value;
             for ( const desc of entry.stack ) {
-                try { desc.set(value); } catch { }
+                try { desc.set(value); } catch (e) {
+                    if ( entry.canThrow ) { throw e; }
+                }
             }
         };
     }
@@ -11036,6 +11541,7 @@ function trapPropertyFn(propChain, handler) {
     };
     entry.stack.push(handler);
     if ( entry.stack.length > 1 ) { return entry.value; }
+    Object.assign(entry, options);
     handlers.set(prop, entry);
     const desc = safe.Object_getOwnPropertyDescriptor(owner, prop);
     if ( desc instanceof safe.Object ) {
@@ -11057,8 +11563,8 @@ function trapPropertyFn(propChain, handler) {
     return entry.value;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -11177,7 +11683,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -11260,8 +11766,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -11281,7 +11787,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -11413,6 +11919,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -11595,11 +12102,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -11607,6 +12121,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -11615,13 +12130,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -11837,8 +12355,8 @@ function sleepFn(ms = 0) {
     return new Promise(resolve => { sleep(resolve); });
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -11957,7 +12475,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -12032,10 +12550,8 @@ function lookupElementsFn(directive, until = 0) {
             if ( elem.openOrClosedShadowRoot ) { // Firefox
                 return elem.openOrClosedShadowRoot;
             }
-            if ( typeof chrome === 'object' ) { // Chromium
-                if ( chrome.dom && chrome.dom.openOrClosedShadowRoot ) {
-                    return chrome.dom.openOrClosedShadowRoot(elem);
-                }
+            if ( self.chrome?.dom?.openOrClosedShadowRoot ) { // Chromium
+                return self.chrome.dom.openOrClosedShadowRoot(elem);
             }
             return elem.shadowRoot;
         };
@@ -12142,8 +12658,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -12163,7 +12679,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -12295,6 +12811,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -12477,11 +12994,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -12489,6 +13013,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -12497,13 +13022,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -12716,8 +13244,8 @@ function sleepFn(ms = 0) {
     return new Promise(resolve => { sleep(resolve); });
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -12836,7 +13364,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -12911,10 +13439,8 @@ function lookupElementsFn(directive, until = 0) {
             if ( elem.openOrClosedShadowRoot ) { // Firefox
                 return elem.openOrClosedShadowRoot;
             }
-            if ( typeof chrome === 'object' ) { // Chromium
-                if ( chrome.dom && chrome.dom.openOrClosedShadowRoot ) {
-                    return chrome.dom.openOrClosedShadowRoot(elem);
-                }
+            if ( self.chrome?.dom?.openOrClosedShadowRoot ) { // Chromium
+                return self.chrome.dom.openOrClosedShadowRoot(elem);
             }
             return elem.shadowRoot;
         };
@@ -13021,8 +13547,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -13042,7 +13568,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -13174,6 +13700,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -13356,11 +13883,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -13368,6 +13902,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -13376,13 +13911,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -13600,8 +14138,8 @@ function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     return needles;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -13720,7 +14258,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -13822,8 +14360,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -13843,7 +14381,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -13975,6 +14513,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -14157,11 +14696,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -14169,6 +14715,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -14177,13 +14724,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -14433,8 +14983,8 @@ function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     return needles;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -14553,7 +15103,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -14655,8 +15205,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -14676,7 +15226,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -14808,6 +15358,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -14990,11 +15541,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -15002,6 +15560,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -15010,13 +15569,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -15266,8 +15828,8 @@ function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     return needles;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -15386,7 +15948,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -15488,8 +16050,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -15509,7 +16071,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -15641,6 +16203,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -15823,11 +16386,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -15835,6 +16405,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -15843,13 +16414,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -16082,8 +16656,8 @@ function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     return needles;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -16202,7 +16776,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -16304,8 +16878,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -16325,7 +16899,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -16457,6 +17031,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -16639,11 +17214,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -16651,6 +17233,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -16659,13 +17242,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -17037,8 +17623,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -17058,7 +17644,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -17190,6 +17776,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -17372,11 +17959,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -17384,6 +17978,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -17392,13 +17987,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -17548,8 +18146,8 @@ class JSONPath {
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -17668,7 +18266,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -17984,8 +18582,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -18005,7 +18603,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -18137,6 +18735,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -18319,11 +18918,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -18331,6 +18937,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -18339,13 +18946,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -18495,8 +19105,8 @@ class JSONPath {
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -18615,7 +19225,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -18931,8 +19541,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -18952,7 +19562,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -19084,6 +19694,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -19266,11 +19877,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -19278,6 +19896,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -19286,13 +19905,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -19442,8 +20064,8 @@ class JSONPath {
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -19562,7 +20184,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -19875,8 +20497,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -19896,7 +20518,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -20028,6 +20650,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -20210,11 +20833,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -20222,6 +20852,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -20230,13 +20861,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -20386,8 +21020,8 @@ class JSONPath {
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -20506,7 +21140,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -20699,8 +21333,8 @@ function matchObjectPropertiesFn(propNeedles, ...objs) {
     return matched;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -20819,7 +21453,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -20924,8 +21558,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -20945,7 +21579,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -21077,6 +21711,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -21259,11 +21894,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -21271,6 +21913,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -21279,13 +21922,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -21546,8 +22192,8 @@ function matchObjectPropertiesFn(propNeedles, ...objs) {
     return matched;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -21666,7 +22312,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -21771,8 +22417,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -21792,7 +22438,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -21924,6 +22570,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -22106,11 +22753,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -22118,6 +22772,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -22126,13 +22781,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -22535,8 +23193,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -22556,7 +23214,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -22688,6 +23346,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -22870,11 +23529,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -22882,6 +23548,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -22890,13 +23557,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -23046,8 +23716,8 @@ class JSONPath {
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -23166,7 +23836,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -23509,8 +24179,8 @@ class JSONPath {
     }
     compile(query) {
         this.#compiled = undefined;
-        const v2 = query.startsWith('v2:');
-        if ( v2 ) { query = query.slice(3); }
+        this.v2 = query.startsWith('v2:');
+        if ( this.v2 ) { query = query.slice(3); }
         const r = this.#compile(query, 0);
         if ( r === undefined ) { return; }
         if ( r.i !== query.length ) {
@@ -23530,7 +24200,7 @@ class JSONPath {
             try { r.rval = JSON.parse(val); }
             catch { return; }
         }
-        r.v2 = v2;
+        r.v2 = this.v2;
         this.#compiled = r;
     }
     evaluate(root) {
@@ -23662,6 +24332,7 @@ class JSONPath {
                 continue;
             }
             // Bracket accessor syntax
+            if ( mv === this.#CHILDREN ) { return; }
             if ( query.startsWith('[?', i) ) {
                 const not = query.charCodeAt(i+2) === 0x21 /* ! */ ? 1 : 0;
                 const j = i + 2 + not;
@@ -23844,11 +24515,18 @@ class JSONPath {
     }
     #consumeIdentifier(query, i) {
         const keys = [];
-        for (;;) {
+        let needIdentifier = true;
+        while ( i < query.length ) {
             const c0 = query.charCodeAt(i);
             if ( c0 === 0x5D /* ] */ ) { break; }
-            if ( c0 === 0x2C /* , */ || c0 === 0x20 /* SPACE */) {
+            if ( c0 === 0x20 /* SPACE */ ) {
                 i += 1;
+                continue;
+            }
+            if ( c0 === 0x2C /* , */ ) {
+                if ( needIdentifier ) { return; }
+                i += 1;
+                needIdentifier = true;
                 continue;
             }
             if ( c0 === 0x22 /* " */ || c0 === 0x27 /* ' */ ) {
@@ -23856,6 +24534,7 @@ class JSONPath {
                 if ( r === undefined ) { return; }
                 keys.push(r.s);
                 i = r.i;
+                needIdentifier = false;
                 continue;
             }
             if ( c0 === 0x2D /* - */ || c0 >= 0x30 && c0 <= 0x39 ) {
@@ -23864,13 +24543,16 @@ class JSONPath {
                 const indice = parseInt(query.slice(i), 10);
                 keys.push(indice);
                 i += match[0].length;
+                needIdentifier = false;
                 continue;
             }
+            if ( this.v2 ) { return; }
             const r = this.#consumeUnquotedIdentifier(query, i);
             if ( r === undefined ) { return; }
             keys.push(r.s);
             i = r.i;
         }
+        if ( needIdentifier ) { return; }
         return { s: keys.length === 1 ? keys[0] : keys, i };
     }
     #consumeUnquotedIdentifier(query, i) {
@@ -24020,8 +24702,8 @@ class JSONPath {
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -24140,7 +24822,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -24346,8 +25028,8 @@ function matchesStackTraceFn(
     return r;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -24466,7 +25148,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -24704,8 +25386,8 @@ function objectPruneFn(
     if ( outcome === 'match' ) { return obj; }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -24824,7 +25506,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -25182,8 +25864,8 @@ function objectFindOwnerFn(
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -25302,7 +25984,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -25651,8 +26333,8 @@ function objectFindOwnerFn(
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -25771,7 +26453,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -26173,8 +26855,8 @@ function matchObjectPropertiesFn(propNeedles, ...objs) {
     return matched;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -26293,7 +26975,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -26642,8 +27324,8 @@ function objectPruneFn(
     if ( outcome === 'match' ) { return obj; }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -26762,7 +27444,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -27089,8 +27771,8 @@ function objectFindOwnerFn(
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -27209,7 +27891,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -27390,8 +28072,8 @@ aliases: ["prevent-eval-if.js"],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -27510,7 +28192,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -27693,8 +28375,8 @@ aliases: ["addEventListener-defuser.js","aeld.js"],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -27813,7 +28495,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -28065,22 +28747,23 @@ function preventAddEventListener(
         }
         return context.reflect();
     };
+    const protect = owner => {
+        const { addEventListener } = owner;
+        Object.defineProperty(owner, 'addEventListener', {
+            set() { },
+            get() { return addEventListener; }
+        });
+    };
     runAt(( ) => {
         proxyApplyFn('EventTarget.prototype.addEventListener', proxyFn);
-        if ( extraArgs.protect ) {
-            const { addEventListener } = EventTarget.prototype;
-            Object.defineProperty(EventTarget.prototype, 'addEventListener', {
-                set() { },
-                get() { return addEventListener; }
-            });
+        if ( extraArgs.protect ) { protect(EventTarget.prototype); }
+        if ( Object.hasOwn(document, 'addEventListener') ) {
+            proxyApplyFn('document.addEventListener', proxyFn);
+            if ( extraArgs.protect ) { protect(document); }
         }
-        proxyApplyFn('document.addEventListener', proxyFn);
-        if ( extraArgs.protect ) {
-            const { addEventListener } = document;
-            Object.defineProperty(document, 'addEventListener', {
-                set() { },
-                get() { return addEventListener; }
-            });
+        if ( Object.hasOwn(window, 'addEventListener') ) {
+            proxyApplyFn('window.addEventListener', proxyFn);
+            if ( extraArgs.protect ) { protect(window); }
         }
     }, extraArgs.runAt);
 };
@@ -28089,14 +28772,14 @@ preventAddEventListener(...args);
 };
 
 
-scriptlets['prevent-dialog.js'] = {
-aliases: [],
-world: 'ISOLATED',
+scriptlets['prevent-bab.js'] = {
+aliases: ["bab-defuser.js","nobab.js"],
+
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -28215,7 +28898,692 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function proxyApplyFn(
+    target = '',
+    handler = ''
+) {
+    let context = globalThis;
+    let prop = target;
+    for (;;) {
+        const pos = prop.indexOf('.');
+        if ( pos === -1 ) { break; }
+        context = context[prop.slice(0, pos)];
+        if ( context instanceof Object === false ) { return; }
+        prop = prop.slice(pos+1);
+    }
+    const fn = context[prop];
+    if ( typeof fn !== 'function' ) { return; }
+    if ( proxyApplyFn.CtorContext === undefined ) {
+        proxyApplyFn.ctorContexts = [];
+        proxyApplyFn.CtorContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, callArgs) {
+                this.callFn = callFn;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.construct(this.callFn, this.callArgs);
+                this.callFn = this.callArgs = this.private = undefined;
+                proxyApplyFn.ctorContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.ctorContexts.length !== 0
+                    ? proxyApplyFn.ctorContexts.pop().init(...args)
+                    : new proxyApplyFn.CtorContext(...args);
+            }
+        };
+        proxyApplyFn.applyContexts = [];
+        proxyApplyFn.ApplyContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, thisArg, callArgs) {
+                this.callFn = callFn;
+                this.thisArg = thisArg;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.apply(this.callFn, this.thisArg, this.callArgs);
+                this.callFn = this.thisArg = this.callArgs = this.private = undefined;
+                proxyApplyFn.applyContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.applyContexts.length !== 0
+                    ? proxyApplyFn.applyContexts.pop().init(...args)
+                    : new proxyApplyFn.ApplyContext(...args);
+            }
+        };
+        proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
+    }
+    if ( proxyApplyFn.isCtor.has(target) === false ) {
+        proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
+    }
+    const proxyDetails = {
+        apply(target, thisArg, args) {
+            return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
+        }
+    };
+    if ( proxyApplyFn.isCtor.get(target) ) {
+        proxyDetails.construct = function(target, args) {
+            return handler(proxyApplyFn.CtorContext.factory(target, args));
+        };
+    }
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
+}
+function preventBab() {
+    const safe = safeSelf();
+    const logPrefix = safe.makeLogPrefix('prevent-bab');
+    const signatures = [
+        [ 'blockadblock' ],
+        [ 'babasbm' ],
+        [ /getItem\('babn'\)/ ],
+        [
+            'getElementById',
+            'String.fromCharCode',
+            'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+            'charAt',
+            'DOMContentLoaded',
+            'AdBlock',
+            'addEventListener',
+            'doScroll',
+            'fromCharCode',
+            '<<2|r>>4',
+            'sessionStorage',
+            'clientWidth',
+            'localStorage',
+            'Math',
+            'random',
+        ],
+    ];
+    const check = function(s) {
+        if ( typeof s !== 'string' ) { return false; }
+        for ( const tokens of signatures ) {
+            let match = 0;
+            for ( const token of tokens ) {
+                const hit = token instanceof RegExp
+                    ? token.test(s)
+                    : s.includes(token);
+                if ( hit ) { match += 1; }
+            }
+            if ( (match / tokens.length) >= 0.8 ) { return true; }
+        }
+        return false;
+    };
+    proxyApplyFn('eval', function(context) {
+        const a = context.callArgs[0];
+        if ( !check(a) ) {
+            return context.reflect();
+        }
+        safe.uboLog(logPrefix, 'Prevented');
+        if ( document.body ) {
+            document.body.style.removeProperty('visibility');
+        }
+        const el = document.getElementById('babasbmsgx');
+        if ( el ) {
+            el.parentNode.removeChild(el);
+        }
+    });
+    proxyApplyFn('setTimeout', function(context) {
+        const { callArgs } = context;
+        const a = callArgs[0];
+        if ( typeof a === 'string'  && /\.bab_elementid.$/.test(a) ) {
+            callArgs[0] = ( ) => { };
+            safe.uboLog(logPrefix, 'Prevented');
+        }
+        return context.reflect();
+    });
+};
+preventBab(...args);
+},
+};
+
+
+scriptlets['prevent-clipboard-write.js'] = {
+aliases: [],
+
+requiresTrust: true,
+func: function (scriptletGlobals = {}, ...args) {
+function safeSelf() {
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'Object_toString': Object.prototype.toString,
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+    };
+    safeSelf.safe = safe;
+    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
+    // This is executed only when the logger is opened
+    safe.logLevel = scriptletGlobals.logLevel || 1;
+    let lastLogType = '';
+    let lastLogText = '';
+    let lastLogTime = 0;
+    safe.toLogText = (type, ...args) => {
+        if ( args.length === 0 ) { return; }
+        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
+        if ( text === lastLogText && type === lastLogType ) {
+            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
+        }
+        lastLogType = type;
+        lastLogText = text;
+        lastLogTime = Date.now();
+        return text;
+    };
+    try {
+        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
+        let bcBuffer = [];
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            if ( bcBuffer === undefined ) {
+                return bc.postMessage({ what: 'messageToLogger', type, text });
+            }
+            bcBuffer.push({ type, text });
+        };
+        bc.onmessage = ev => {
+            const msg = ev.data;
+            switch ( msg ) {
+            case 'iamready!':
+                if ( bcBuffer === undefined ) { break; }
+                bcBuffer.forEach(({ type, text }) =>
+                    bc.postMessage({ what: 'messageToLogger', type, text })
+                );
+                bcBuffer = undefined;
+                break;
+            case 'setScriptletLogLevelToOne':
+                safe.logLevel = 1;
+                break;
+            case 'setScriptletLogLevelToTwo':
+                safe.logLevel = 2;
+                break;
+            }
+        };
+        bc.postMessage('areyouready?');
+    } catch {
+        safe.sendToLogger = (type, ...args) => {
+            const text = safe.toLogText(type, ...args);
+            if ( text === undefined ) { return; }
+            safe.log(`uBO ${text}`);
+        };
+    }
+    return safe;
+}
+function proxyApplyFn(
+    target = '',
+    handler = ''
+) {
+    let context = globalThis;
+    let prop = target;
+    for (;;) {
+        const pos = prop.indexOf('.');
+        if ( pos === -1 ) { break; }
+        context = context[prop.slice(0, pos)];
+        if ( context instanceof Object === false ) { return; }
+        prop = prop.slice(pos+1);
+    }
+    const fn = context[prop];
+    if ( typeof fn !== 'function' ) { return; }
+    if ( proxyApplyFn.CtorContext === undefined ) {
+        proxyApplyFn.ctorContexts = [];
+        proxyApplyFn.CtorContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, callArgs) {
+                this.callFn = callFn;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.construct(this.callFn, this.callArgs);
+                this.callFn = this.callArgs = this.private = undefined;
+                proxyApplyFn.ctorContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.ctorContexts.length !== 0
+                    ? proxyApplyFn.ctorContexts.pop().init(...args)
+                    : new proxyApplyFn.CtorContext(...args);
+            }
+        };
+        proxyApplyFn.applyContexts = [];
+        proxyApplyFn.ApplyContext = class {
+            constructor(...args) {
+                this.init(...args);
+            }
+            init(callFn, thisArg, callArgs) {
+                this.callFn = callFn;
+                this.thisArg = thisArg;
+                this.callArgs = callArgs;
+                return this;
+            }
+            reflect() {
+                const r = Reflect.apply(this.callFn, this.thisArg, this.callArgs);
+                this.callFn = this.thisArg = this.callArgs = this.private = undefined;
+                proxyApplyFn.applyContexts.push(this);
+                return r;
+            }
+            static factory(...args) {
+                return proxyApplyFn.applyContexts.length !== 0
+                    ? proxyApplyFn.applyContexts.pop().init(...args)
+                    : new proxyApplyFn.ApplyContext(...args);
+            }
+        };
+        proxyApplyFn.isCtor = new Map();
+        proxyApplyFn.proxies = new WeakMap();
+        proxyApplyFn.nativeToString = Function.prototype.toString;
+        const proxiedToString = new Proxy(Function.prototype.toString, {
+            apply(target, thisArg) {
+                let proxied = thisArg;
+                for(;;) {
+                    const fn = proxyApplyFn.proxies.get(proxied);
+                    if ( fn === undefined ) { break; }
+                    proxied = fn;
+                }
+                return proxyApplyFn.nativeToString.call(proxied);
+            }
+        });
+        proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
+        Function.prototype.toString = proxiedToString;
+    }
+    if ( proxyApplyFn.isCtor.has(target) === false ) {
+        proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
+    }
+    const proxyDetails = {
+        apply(target, thisArg, args) {
+            return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
+        }
+    };
+    if ( proxyApplyFn.isCtor.get(target) ) {
+        proxyDetails.construct = function(target, args) {
+            return handler(proxyApplyFn.CtorContext.factory(target, args));
+        };
+    }
+    const proxiedTarget = new Proxy(fn, proxyDetails);
+    proxyApplyFn.proxies.set(proxiedTarget, fn);
+    context[prop] = proxiedTarget;
+}
+function preventClipboardWrite(needle = '') {
+    const safe = safeSelf();
+    const logPrefix = safe.makeLogPrefix('prevent-clipboard-write');
+    const pattern = safe.initPattern(needle);
+    const extraArgs = safe.getExtraArgs(Array.from(arguments), 1);
+    const domAlert = clipboardText => {
+        const match = /^([^|]+)\s*\|\s*(.+)/.exec(extraArgs.domAlert);
+        if ( Boolean(match) === false ) { return; }
+        const elem = document.querySelector(match[1]);
+        if ( elem === null ) { return; }
+        const div = document.createElement('div');
+        const placeholder = /\$\{text\}/.exec(match[2]);
+        if ( placeholder ) {
+            const code = document.createElement('code');
+            code.style = 'background-color:#ddc;padding:0.25em;user-select:none;word-break:break-all';
+            code.textContent = clipboardText;
+            div.append(
+                match[2].slice(0, placeholder.index),
+                code,
+                match[2].slice(placeholder.index + placeholder[0].length)
+            );
+        } else {
+            div.append(match[2]);
+        }
+        div.style = 'background-color:beige;color:black;border:1px solid black;font-size:medium;padding:0.5em;position:absolute;text-align:center;top:0;width:100%;z-index:2147483647';
+        elem.append(div);
+        if ( currentAlert ) {
+            currentAlert.remove();
+        }
+        currentAlert = div;
+    };
+    let currentAlert = null;
+    const prevent = text => {
+        if ( typeof text !== 'string' ) { return; }
+        text = text.trim();
+        if ( safe.testPattern(pattern, text) !== true ) { return; }
+        if ( extraArgs.domAlert ) {
+            domAlert(text);
+        }
+        safe.uboLog(logPrefix, 'Prevented:\n\t', text);
+        return true;
+    };
+    proxyApplyFn('navigator.clipboard.writeText', function(context) {
+        const text = `${context.callArgs[0]}`;
+        if ( prevent(text) ) { return; }
+        return context.reflect();
+    });
+    proxyApplyFn('document.execCommand', function(context) {
+        const { callArgs } = context;
+        if ( callArgs[0] === 'copy' || callArgs[0] === 'cut' ) {
+            const text = document.getSelection()?.toString();
+            if ( text && prevent(text) ) { return; }
+        }
+        return context.reflect();
+    });
+};
+preventClipboardWrite(...args);
+},
+};
+
+
+scriptlets['prevent-dialog.js'] = {
+aliases: [],
+world: 'ISOLATED',
+requiresTrust: false,
+func: function (scriptletGlobals = {}, ...args) {
+function safeSelf() {
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
+    }
+    const self = globalThis;
+    const safe = {
+        'Array_from': Array.from,
+        'Error': self.Error,
+        'Function_toStringFn': self.Function.prototype.toString,
+        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
+        'Math_floor': Math.floor,
+        'Math_max': Math.max,
+        'Math_min': Math.min,
+        'Math_random': Math.random,
+        'Object': Object,
+        'Object_defineProperty': Object.defineProperty.bind(Object),
+        'Object_defineProperties': Object.defineProperties.bind(Object),
+        'Object_fromEntries': Object.fromEntries.bind(Object),
+        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
+        'Object_hasOwn': Object.hasOwn.bind(Object),
+        'Object_toString': Object.prototype.toString,
+        'RegExp': self.RegExp,
+        'RegExp_test': self.RegExp.prototype.test,
+        'RegExp_exec': self.RegExp.prototype.exec,
+        'Request_clone': self.Request.prototype.clone,
+        'String': self.String,
+        'String_fromCharCode': String.fromCharCode,
+        'String_split': String.prototype.split,
+        'XMLHttpRequest': self.XMLHttpRequest,
+        'addEventListener': self.EventTarget.prototype.addEventListener,
+        'removeEventListener': self.EventTarget.prototype.removeEventListener,
+        'fetch': self.fetch,
+        'JSON': self.JSON,
+        'JSON_parseFn': self.JSON.parse,
+        'JSON_stringifyFn': self.JSON.stringify,
+        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
+        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
+        'log': console.log.bind(console),
+        // Properties
+        logLevel: 0,
+        // Methods
+        makeLogPrefix(...args) {
+            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
+        },
+        uboLog(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('info', ...args);
+            
+        },
+        uboErr(...args) {
+            if ( this.sendToLogger === undefined ) { return; }
+            if ( args === undefined || args[0] === '' ) { return; }
+            return this.sendToLogger('error', ...args);
+        },
+        escapeRegexChars(s) {
+            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        },
+        initPattern(pattern, options = {}) {
+            if ( pattern === '' ) {
+                return { matchAll: true, expect: true };
+            }
+            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
+            if ( expect === false ) {
+                pattern = pattern.slice(1);
+            }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match !== null ) {
+                return {
+                    re: new this.RegExp(
+                        match[1],
+                        match[2] || options.flags
+                    ),
+                    expect,
+                };
+            }
+            if ( options.flags !== undefined ) {
+                return {
+                    re: new this.RegExp(this.escapeRegexChars(pattern),
+                        options.flags
+                    ),
+                    expect,
+                };
+            }
+            return { pattern, expect };
+        },
+        testPattern(details, haystack) {
+            if ( details.matchAll ) { return true; }
+            if ( details.re ) {
+                return this.RegExp_test.call(details.re, haystack) === details.expect;
+            }
+            return haystack.includes(details.pattern) === details.expect;
+        },
+        patternToRegex(pattern, flags = undefined, verbatim = false) {
+            if ( pattern === '' ) { return /^/; }
+            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
+            if ( match === null ) {
+                const reStr = this.escapeRegexChars(pattern);
+                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
+            }
+            try {
+                return new RegExp(match[1], match[2] || undefined);
+            }
+            catch {
+            }
+            return /^/;
+        },
+        getExtraArgs(args, offset = 0) {
+            const entries = args.slice(offset).reduce((out, v, i, a) => {
+                if ( (i & 1) === 0 ) {
+                    const rawValue = a[i+1];
+                    const value = /^\d+$/.test(rawValue)
+                        ? parseInt(rawValue, 10)
+                        : rawValue;
+                    out.push([ a[i], value ]);
+                }
+                return out;
+            }, []);
+            return this.Object_fromEntries(entries);
+        },
+    };
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -28508,8 +29876,8 @@ function generateContentFn(trusted, directive) {
     return '';
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -28628,7 +29996,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -29012,8 +30380,8 @@ function generateContentFn(trusted, directive) {
     return '';
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -29132,7 +30500,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -29317,8 +30685,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -29437,7 +30805,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -29557,8 +30925,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -29677,7 +31045,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -29803,8 +31171,8 @@ world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -29923,7 +31291,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -30011,8 +31379,8 @@ aliases: ["no-setTimeout-if.js","nostif.js","setTimeout-defuser.js"],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -30131,7 +31499,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -30350,8 +31718,8 @@ aliases: ["no-setInterval-if.js","nosiif.js","setInterval-defuser.js"],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -30470,7 +31838,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -30689,8 +32057,8 @@ aliases: ["no-requestAnimationFrame-if.js","norafif.js"],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -30809,7 +32177,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -31127,8 +32495,8 @@ function matchObjectPropertiesFn(propNeedles, ...objs) {
     return matched;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -31247,7 +32615,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -31684,8 +33052,8 @@ function matchObjectPropertiesFn(propNeedles, ...objs) {
     return matched;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -31804,7 +33172,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -32158,8 +33526,8 @@ function validateConstantFn(trusted, raw, extraArgs = {}) {
     return value;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -32278,7 +33646,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -32579,8 +33947,8 @@ function validateConstantFn(trusted, raw, extraArgs = {}) {
     return value;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -32699,7 +34067,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -33000,8 +34368,8 @@ function validateConstantFn(trusted, raw, extraArgs = {}) {
     return value;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -33120,7 +34488,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -33460,8 +34828,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -33580,7 +34948,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -33842,8 +35210,8 @@ function setCookieFn(
     return done;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -33962,7 +35330,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -34164,8 +35532,8 @@ function setCookieFn(
     return done;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -34284,7 +35652,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -34489,8 +35857,8 @@ function setCookieFn(
     return done;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -34609,7 +35977,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -34802,8 +36170,8 @@ function setCookieFn(
     return done;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -34922,7 +36290,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -35041,8 +36409,8 @@ world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -35161,7 +36529,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -35403,8 +36771,8 @@ function setLocalStorageItemFn(
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -35523,7 +36891,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -35699,8 +37067,8 @@ function setLocalStorageItemFn(
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -35819,7 +37187,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -35995,8 +37363,8 @@ function setLocalStorageItemFn(
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -36115,7 +37483,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -36291,8 +37659,8 @@ function setLocalStorageItemFn(
     }
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -36411,7 +37779,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -36478,344 +37846,14 @@ trustedSetSessionStorageItem(...args);
 };
 
 
-scriptlets['abort-current-script.js'] = {
-aliases: ["acs.js","abort-current-inline-script.js","acis.js"],
-
-requiresTrust: false,
-func: function (scriptletGlobals = {}, ...args) {
-function runAtHtmlElementFn(fn) {
-    if ( document.documentElement ) {
-        fn();
-        return;
-    }
-    const observer = new MutationObserver(( ) => {
-        observer.disconnect();
-        fn();
-    });
-    observer.observe(document, { childList: true });
-}
-function shouldDebug(details) {
-    if ( details instanceof Object === false ) { return false; }
-    return scriptletGlobals.canDebug && details.debug;
-}
-function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
-    }
-    const self = globalThis;
-    const safe = {
-        'Array_from': Array.from,
-        'Error': self.Error,
-        'Function_toStringFn': self.Function.prototype.toString,
-        'Function_toString': thisArg => safe.Function_toStringFn.call(thisArg),
-        'Math_floor': Math.floor,
-        'Math_max': Math.max,
-        'Math_min': Math.min,
-        'Math_random': Math.random,
-        'Object': Object,
-        'Object_defineProperty': Object.defineProperty.bind(Object),
-        'Object_defineProperties': Object.defineProperties.bind(Object),
-        'Object_fromEntries': Object.fromEntries.bind(Object),
-        'Object_getOwnPropertyDescriptor': Object.getOwnPropertyDescriptor.bind(Object),
-        'Object_hasOwn': Object.hasOwn.bind(Object),
-        'Object_toString': Object.prototype.toString,
-        'RegExp': self.RegExp,
-        'RegExp_test': self.RegExp.prototype.test,
-        'RegExp_exec': self.RegExp.prototype.exec,
-        'Request_clone': self.Request.prototype.clone,
-        'String': self.String,
-        'String_fromCharCode': String.fromCharCode,
-        'String_split': String.prototype.split,
-        'XMLHttpRequest': self.XMLHttpRequest,
-        'addEventListener': self.EventTarget.prototype.addEventListener,
-        'removeEventListener': self.EventTarget.prototype.removeEventListener,
-        'fetch': self.fetch,
-        'JSON': self.JSON,
-        'JSON_parseFn': self.JSON.parse,
-        'JSON_stringifyFn': self.JSON.stringify,
-        'JSON_parse': (...args) => safe.JSON_parseFn.call(safe.JSON, ...args),
-        'JSON_stringify': (...args) => safe.JSON_stringifyFn.call(safe.JSON, ...args),
-        'log': console.log.bind(console),
-        // Properties
-        logLevel: 0,
-        // Methods
-        makeLogPrefix(...args) {
-            return this.sendToLogger && `[${args.join(' \u205D ')}]` || '';
-        },
-        uboLog(...args) {
-            if ( this.sendToLogger === undefined ) { return; }
-            if ( args === undefined || args[0] === '' ) { return; }
-            return this.sendToLogger('info', ...args);
-            
-        },
-        uboErr(...args) {
-            if ( this.sendToLogger === undefined ) { return; }
-            if ( args === undefined || args[0] === '' ) { return; }
-            return this.sendToLogger('error', ...args);
-        },
-        escapeRegexChars(s) {
-            return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        },
-        initPattern(pattern, options = {}) {
-            if ( pattern === '' ) {
-                return { matchAll: true, expect: true };
-            }
-            const expect = (options.canNegate !== true || pattern.startsWith('!') === false);
-            if ( expect === false ) {
-                pattern = pattern.slice(1);
-            }
-            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
-            if ( match !== null ) {
-                return {
-                    re: new this.RegExp(
-                        match[1],
-                        match[2] || options.flags
-                    ),
-                    expect,
-                };
-            }
-            if ( options.flags !== undefined ) {
-                return {
-                    re: new this.RegExp(this.escapeRegexChars(pattern),
-                        options.flags
-                    ),
-                    expect,
-                };
-            }
-            return { pattern, expect };
-        },
-        testPattern(details, haystack) {
-            if ( details.matchAll ) { return true; }
-            if ( details.re ) {
-                return this.RegExp_test.call(details.re, haystack) === details.expect;
-            }
-            return haystack.includes(details.pattern) === details.expect;
-        },
-        patternToRegex(pattern, flags = undefined, verbatim = false) {
-            if ( pattern === '' ) { return /^/; }
-            const match = /^\/(.+)\/([gimsu]*)$/.exec(pattern);
-            if ( match === null ) {
-                const reStr = this.escapeRegexChars(pattern);
-                return new RegExp(verbatim ? `^${reStr}$` : reStr, flags);
-            }
-            try {
-                return new RegExp(match[1], match[2] || undefined);
-            }
-            catch {
-            }
-            return /^/;
-        },
-        getExtraArgs(args, offset = 0) {
-            const entries = args.slice(offset).reduce((out, v, i, a) => {
-                if ( (i & 1) === 0 ) {
-                    const rawValue = a[i+1];
-                    const value = /^\d+$/.test(rawValue)
-                        ? parseInt(rawValue, 10)
-                        : rawValue;
-                    out.push([ a[i], value ]);
-                }
-                return out;
-            }, []);
-            return this.Object_fromEntries(entries);
-        },
-    };
-    scriptletGlobals.safeSelf = safe;
-    if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
-    // This is executed only when the logger is opened
-    safe.logLevel = scriptletGlobals.logLevel || 1;
-    let lastLogType = '';
-    let lastLogText = '';
-    let lastLogTime = 0;
-    safe.toLogText = (type, ...args) => {
-        if ( args.length === 0 ) { return; }
-        const text = `[${document.location.hostname || document.location.href}]${args.join(' ')}`;
-        if ( text === lastLogText && type === lastLogType ) {
-            if ( (Date.now() - lastLogTime) < 5000 ) { return; }
-        }
-        lastLogType = type;
-        lastLogText = text;
-        lastLogTime = Date.now();
-        return text;
-    };
-    try {
-        const bc = new self.BroadcastChannel(scriptletGlobals.bcSecret);
-        let bcBuffer = [];
-        safe.sendToLogger = (type, ...args) => {
-            const text = safe.toLogText(type, ...args);
-            if ( text === undefined ) { return; }
-            if ( bcBuffer === undefined ) {
-                return bc.postMessage({ what: 'messageToLogger', type, text });
-            }
-            bcBuffer.push({ type, text });
-        };
-        bc.onmessage = ev => {
-            const msg = ev.data;
-            switch ( msg ) {
-            case 'iamready!':
-                if ( bcBuffer === undefined ) { break; }
-                bcBuffer.forEach(({ type, text }) =>
-                    bc.postMessage({ what: 'messageToLogger', type, text })
-                );
-                bcBuffer = undefined;
-                break;
-            case 'setScriptletLogLevelToOne':
-                safe.logLevel = 1;
-                break;
-            case 'setScriptletLogLevelToTwo':
-                safe.logLevel = 2;
-                break;
-            }
-        };
-        bc.postMessage('areyouready?');
-    } catch {
-        safe.sendToLogger = (type, ...args) => {
-            const text = safe.toLogText(type, ...args);
-            if ( text === undefined ) { return; }
-            safe.log(`uBO ${text}`);
-        };
-    }
-    return safe;
-}
-function getRandomTokenFn() {
-    const safe = safeSelf();
-    return safe.String_fromCharCode(Date.now() % 26 + 97) +
-        safe.Math_floor(safe.Math_random() * 982451653 + 982451653).toString(36);
-}
-function getExceptionTokenFn() {
-    const token = getRandomTokenFn();
-    const oe = self.onerror;
-    self.onerror = function(msg, ...args) {
-        if ( typeof msg === 'string' && msg.includes(token) ) { return true; }
-        if ( oe instanceof Function ) {
-            return oe.call(this, msg, ...args);
-        }
-    }.bind();
-    return token;
-}
-function abortCurrentScriptFn(
-    target = '',
-    needle = '',
-    context = ''
-) {
-    if ( typeof target !== 'string' ) { return; }
-    if ( target === '' ) { return; }
-    const safe = safeSelf();
-    const logPrefix = safe.makeLogPrefix('abort-current-script', target, needle, context);
-    const reNeedle = safe.patternToRegex(needle);
-    const reContext = safe.patternToRegex(context);
-    const extraArgs = safe.getExtraArgs(Array.from(arguments), 3);
-    const thisScript = document.currentScript;
-    const chain = safe.String_split.call(target, '.');
-    let owner = window;
-    let prop;
-    for (;;) {
-        prop = chain.shift();
-        if ( chain.length === 0 ) { break; }
-        if ( prop in owner === false ) { break; }
-        owner = owner[prop];
-        if ( owner instanceof Object === false ) { return; }
-    }
-    let value;
-    let desc = Object.getOwnPropertyDescriptor(owner, prop);
-    if (
-        desc instanceof Object === false ||
-        desc.get instanceof Function === false
-    ) {
-        value = owner[prop];
-        desc = undefined;
-    }
-    const debug = shouldDebug(extraArgs);
-    const exceptionToken = getExceptionTokenFn();
-    const scriptTexts = new WeakMap();
-    const textContentGetter = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent').get;
-    const getScriptText = elem => {
-        let text = textContentGetter.call(elem);
-        if ( text.trim() !== '' ) { return text; }
-        if ( scriptTexts.has(elem) ) { return scriptTexts.get(elem); }
-        const [ , mime, content ] =
-            /^data:([^,]*),(.+)$/.exec(elem.src.trim()) ||
-            [ '', '', '' ];
-        try {
-            switch ( true ) {
-            case mime.endsWith(';base64'):
-                text = self.atob(content);
-                break;
-            default:
-                text = self.decodeURIComponent(content);
-                break;
-            }
-        } catch {
-        }
-        scriptTexts.set(elem, text);
-        return text;
-    };
-    const validate = ( ) => {
-        const e = document.currentScript;
-        if ( e instanceof HTMLScriptElement === false ) { return; }
-        if ( e === thisScript ) { return; }
-        if ( context !== '' && reContext.test(e.src) === false ) {
-            // eslint-disable-next-line no-debugger
-            if ( debug === 'nomatch' || debug === 'all' ) { debugger; }
-            return;
-        }
-        if ( safe.logLevel > 1 && context !== '' ) {
-            safe.uboLog(logPrefix, `Matched src\n${e.src}`);
-        }
-        const scriptText = getScriptText(e);
-        if ( reNeedle.test(scriptText) === false ) {
-            // eslint-disable-next-line no-debugger
-            if ( debug === 'nomatch' || debug === 'all' ) { debugger; }
-            return;
-        }
-        if ( safe.logLevel > 1 ) {
-            safe.uboLog(logPrefix, `Matched text\n${scriptText}`);
-        }
-        // eslint-disable-next-line no-debugger
-        if ( debug === 'match' || debug === 'all' ) { debugger; }
-        safe.uboLog(logPrefix, 'Aborted');
-        throw new ReferenceError(exceptionToken);
-    };
-    // eslint-disable-next-line no-debugger
-    if ( debug === 'install' ) { debugger; }
-    try {
-        Object.defineProperty(owner, prop, {
-            get: function() {
-                validate();
-                return desc instanceof Object
-                    ? desc.get.call(owner)
-                    : value;
-            },
-            set: function(a) {
-                validate();
-                if ( desc instanceof Object ) {
-                    desc.set.call(owner, a);
-                } else {
-                    value = a;
-                }
-            }
-        });
-    } catch(ex) {
-        safe.uboErr(logPrefix, `Error: ${ex}`);
-    }
-}
-function abortCurrentScript(...args) {
-    runAtHtmlElementFn(( ) => {
-        abortCurrentScriptFn(...args);
-    });
-};
-abortCurrentScript(...args);
-},
-};
-
-
 scriptlets['abort-on-property-read.js'] = {
 aliases: ["aopr.js"],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -36934,7 +37972,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -37064,8 +38102,8 @@ aliases: ["aopw.js"],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -37184,7 +38222,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -37292,8 +38330,8 @@ aliases: ["nano-setInterval-booster.js","nano-sib.js"],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -37412,7 +38450,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -37507,8 +38545,8 @@ aliases: ["nano-setTimeout-booster.js","nano-stb.js"],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -37627,7 +38665,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -37722,8 +38760,8 @@ world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -37842,7 +38880,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -37935,8 +38973,8 @@ world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -38055,7 +39093,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -38219,8 +39257,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -38339,7 +39377,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -38465,8 +39503,8 @@ aliases: ["nowoif.js","no-window-open-if.js","window.open-defuser.js"],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -38585,7 +39623,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -38833,8 +39871,8 @@ world: 'ISOLATED',
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -38953,7 +39991,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -39208,8 +40246,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -39328,7 +40366,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -39534,8 +40572,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -39654,7 +40692,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -39975,8 +41013,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -40095,7 +41133,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -40219,8 +41257,8 @@ function runAt(fn, when) {
     safe.addEventListener.apply(document, args);
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -40339,7 +41377,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -40520,8 +41558,8 @@ aliases: [],
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -40640,7 +41678,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -40886,8 +41924,8 @@ function runAt(fn, when) {
     safe.addEventListener.apply(document, args);
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -41006,7 +42044,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -41227,8 +42265,8 @@ function matchObjectPropertiesFn(propNeedles, ...objs) {
     return matched;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -41347,7 +42385,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -41530,8 +42568,8 @@ function parsePropertiesToMatchFn(propsToMatch, implicit = '') {
     return needles;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -41650,7 +42688,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -41834,10 +42872,8 @@ function lookupElementsFn(directive, until = 0) {
             if ( elem.openOrClosedShadowRoot ) { // Firefox
                 return elem.openOrClosedShadowRoot;
             }
-            if ( typeof chrome === 'object' ) { // Chromium
-                if ( chrome.dom && chrome.dom.openOrClosedShadowRoot ) {
-                    return chrome.dom.openOrClosedShadowRoot(elem);
-                }
+            if ( self.chrome?.dom?.openOrClosedShadowRoot ) { // Chromium
+                return self.chrome.dom.openOrClosedShadowRoot(elem);
             }
             return elem.shadowRoot;
         };
@@ -41929,8 +42965,8 @@ function getAllLocalStorageFn(which = 'localStorage') {
     return out;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -42049,7 +43085,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -42169,10 +43205,16 @@ function trustedClickElement(
         }
     }
 
-    const steps = safe.String_split.call(selectors, /\s*,\s*/).map(a => {
-        if ( /^\d+$/.test(a) ) { return parseInt(a, 10); }
-        return a;
-    });
+    const steps = (( ) => {
+        const steps = /^[;|]/.test(selectors)
+            ? safe.String_split.call(selectors.slice(1), selectors.charAt(0))
+            : safe.String_split.call(selectors, ',');
+        return steps.map(a => {
+            a = a.trim();
+            if ( /^\d+$/.test(a) ) { return parseInt(a, 10); }
+            return a;
+        });
+    })();
     if ( steps.length === 0 ) { return; }
     const clickDelay = parseInt(delay, 10) || 1;
     for ( let i = steps.length-1; i > 0; i-- ) {
@@ -42239,8 +43281,8 @@ aliases: [],
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -42359,7 +43401,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -42658,8 +43700,8 @@ function proxyApplyFn(
     context[prop] = proxiedTarget;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -42778,7 +43820,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -42973,8 +44015,8 @@ aliases: [],
 requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -43093,7 +44135,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
@@ -43347,8 +44389,8 @@ function validateConstantFn(trusted, raw, extraArgs = {}) {
     return value;
 }
 function safeSelf() {
-    if ( scriptletGlobals.safeSelf ) {
-        return scriptletGlobals.safeSelf;
+    if ( safeSelf.safe ) {
+        return safeSelf.safe;
     }
     const self = globalThis;
     const safe = {
@@ -43467,7 +44509,7 @@ function safeSelf() {
             return this.Object_fromEntries(entries);
         },
     };
-    scriptletGlobals.safeSelf = safe;
+    safeSelf.safe = safe;
     if ( scriptletGlobals.bcSecret === undefined ) { return safe; }
     // This is executed only when the logger is opened
     safe.logLevel = scriptletGlobals.logLevel || 1;
