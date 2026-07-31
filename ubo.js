@@ -1987,108 +1987,15 @@ aliases: [],
 
 requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
-function proxyApplyFn(
-    target = '',
-    handler = ''
-) {
-    let context = globalThis;
-    let prop = target;
-    for (;;) {
-        const pos = prop.indexOf('.');
-        if ( pos === -1 ) { break; }
-        context = context[prop.slice(0, pos)];
-        if ( context instanceof Object === false ) { return; }
-        prop = prop.slice(pos+1);
-    }
-    const fn = context[prop];
-    if ( typeof fn !== 'function' ) { return; }
-    if ( proxyApplyFn.CtorContext === undefined ) {
-        proxyApplyFn.ctorContexts = [];
-        proxyApplyFn.CtorContext = class {
-            constructor(...args) {
-                this.init(...args);
-            }
-            init(callFn, callArgs) {
-                this.callFn = callFn;
-                this.callArgs = callArgs;
-                return this;
-            }
-            reflect() {
-                const r = Reflect.construct(this.callFn, this.callArgs);
-                this.callFn = this.callArgs = this.private = undefined;
-                proxyApplyFn.ctorContexts.push(this);
-                return r;
-            }
-            static factory(...args) {
-                return proxyApplyFn.ctorContexts.length !== 0
-                    ? proxyApplyFn.ctorContexts.pop().init(...args)
-                    : new proxyApplyFn.CtorContext(...args);
-            }
-        };
-        proxyApplyFn.applyContexts = [];
-        proxyApplyFn.ApplyContext = class {
-            constructor(...args) {
-                this.init(...args);
-            }
-            init(callFn, thisArg, callArgs) {
-                this.callFn = callFn;
-                this.thisArg = thisArg;
-                this.callArgs = callArgs;
-                return this;
-            }
-            reflect() {
-                const r = Reflect.apply(this.callFn, this.thisArg, this.callArgs);
-                this.callFn = this.thisArg = this.callArgs = this.private = undefined;
-                proxyApplyFn.applyContexts.push(this);
-                return r;
-            }
-            static factory(...args) {
-                return proxyApplyFn.applyContexts.length !== 0
-                    ? proxyApplyFn.applyContexts.pop().init(...args)
-                    : new proxyApplyFn.ApplyContext(...args);
-            }
-        };
-        proxyApplyFn.isCtor = new Map();
-        proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
-            proxyApplyFn.nativeToString = Function.prototype.toString;
-            const proxiedToString = new Proxy(Function.prototype.toString, {
-                apply(target, thisArg) {
-                    let proxied = thisArg;
-                    for(;;) {
-                        const fn = proxyApplyFn.proxies.get(proxied);
-                        if ( fn === undefined ) { break; }
-                        proxied = fn;
-                    }
-                    return proxyApplyFn.nativeToString.call(proxied);
-                }
-            });
-            proxyApplyFn.proxies.set(proxiedToString, proxyApplyFn.nativeToString);
-            Function.prototype.toString = proxiedToString;
-        }
-    }
-    if ( proxyApplyFn.isCtor.has(target) === false ) {
-        proxyApplyFn.isCtor.set(target, fn.prototype?.constructor === fn);
-    }
-    const proxyDetails = {
-        apply(target, thisArg, args) {
-            return handler(proxyApplyFn.ApplyContext.factory(target, thisArg, args));
-        }
-    };
-    if ( proxyApplyFn.isCtor.get(target) ) {
-        proxyDetails.construct = function(target, args) {
-            return handler(proxyApplyFn.CtorContext.factory(target, args));
-        };
-    }
-    const proxiedTarget = new Proxy(fn, proxyDetails);
-    proxyApplyFn.proxies.set(proxiedTarget, fn);
-    context[prop] = proxiedTarget;
-}
+
 function proxyApplyConfig(config = '') {
-    try { config = JSON.parse(config); }
-    catch { }
-    if ( typeof config !== 'object' ) { return; }
-    Object.assign(proxyApplyFn, config);
+    try {
+        if ( typeof proxyApplyFn !== 'function' ) { return; }
+        config = JSON.parse(config);
+        if ( typeof config !== 'object' ) { return; }
+        Object.assign(proxyApplyFn, config);
+    } catch {
+    }
 };
 proxyApplyConfig(...args);
 },
@@ -2280,7 +2187,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -2341,7 +2249,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -3143,7 +3051,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -3204,7 +3113,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -4006,7 +3915,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -4067,7 +3977,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -4869,7 +4779,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -4930,7 +4841,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -5732,7 +5643,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -5793,7 +5705,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -6622,7 +6534,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -6683,7 +6596,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -7512,7 +7425,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -7573,7 +7487,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -8385,7 +8299,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -8446,7 +8361,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -17594,7 +17509,8 @@ requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -17655,7 +17571,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -18555,7 +18471,8 @@ requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -18616,7 +18533,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -19516,7 +19433,8 @@ requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -19577,7 +19495,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -20474,7 +20392,8 @@ requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -20535,7 +20454,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -23150,7 +23069,8 @@ requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -23211,7 +23131,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -24138,7 +24058,8 @@ requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -24199,7 +24120,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -25847,7 +25768,8 @@ requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -25908,7 +25830,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -26318,7 +26240,8 @@ requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -26379,7 +26302,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -27758,7 +27681,8 @@ requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -27819,7 +27743,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -28398,7 +28322,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -28459,7 +28384,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -28731,7 +28656,8 @@ function runAt(fn, when) {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -28792,7 +28718,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -29108,7 +29034,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -29169,7 +29096,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -29456,7 +29383,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -29517,7 +29445,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -29551,11 +29479,14 @@ function proxyApplyFn(
     proxyApplyFn.proxies.set(proxiedTarget, fn);
     context[prop] = proxiedTarget;
 }
-function preventClipboardWrite(needle = '') {
+function preventClipboardWrite(matches = '', excludeMatches = '') {
     const safe = safeSelf();
     const logPrefix = safe.makeLogPrefix('prevent-clipboard-write');
-    const pattern = safe.initPattern(needle);
-    const extraArgs = safe.getExtraArgs(Array.from(arguments), 1);
+    const pattern = safe.initPattern(matches);
+    const excludePattern = excludeMatches !== ''
+        ? safe.initPattern(excludeMatches)
+        : false;
+    const extraArgs = safe.getExtraArgs(Array.from(arguments), 2);
     const domAlert = clipboardText => {
         const doc = document;
         const div = doc.createElement('div');
@@ -29596,24 +29527,33 @@ function preventClipboardWrite(needle = '') {
         if ( typeof text !== 'string' ) { return; }
         text = text.trim();
         if ( safe.testPattern(pattern, text) !== true ) { return; }
+        if ( excludePattern ) {
+            if ( safe.testPattern(excludePattern, text) ) { return; }
+        }
         if ( extraArgs.domAlert ) {
             domAlert(text);
         }
         safe.uboLog(logPrefix, 'Prevented:\n\t', text);
         return true;
     };
-    proxyApplyFn('navigator.clipboard.writeText', function(context) {
-        const text = `${context.callArgs[0]}`;
-        if ( prevent(text) ) { return; }
-        return context.reflect();
-    });
-    proxyApplyFn('document.execCommand', function(context) {
-        const { callArgs } = context;
-        if ( callArgs[0] === 'copy' || callArgs[0] === 'cut' ) {
-            const text = document.getSelection()?.toString();
-            if ( text && prevent(text) ) { return; }
-        }
-        return context.reflect();
+    const installTraps = ( ) => {
+        proxyApplyFn('navigator.clipboard.writeText', async function(context) {
+            const text = `${context.callArgs[0]}`;
+            if ( prevent(text) ) { return; }
+            return context.reflect();
+        }, { skipToString: true });
+        proxyApplyFn('document.execCommand', function(context) {
+            const { callArgs } = context;
+            if ( callArgs[0] === 'copy' || callArgs[0] === 'cut' ) {
+                const text = document.getSelection()?.toString();
+                if ( text && prevent(text) ) { return false; }
+            }
+            return context.reflect();
+        }, { skipToString: true });
+    };
+    self.addEventListener('mousedown', installTraps, {
+        once: true,
+        capture: true,
     });
 };
 preventClipboardWrite(...args);
@@ -29842,7 +29782,8 @@ requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -29903,7 +29844,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -30348,7 +30289,8 @@ requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -30409,7 +30351,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -31756,7 +31698,8 @@ class RangeParser {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -31817,7 +31760,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -32097,7 +32040,8 @@ class RangeParser {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -32158,7 +32102,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -32408,7 +32352,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -32469,7 +32414,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -32536,7 +32481,8 @@ requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -32597,7 +32543,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -33095,7 +33041,8 @@ requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -33156,7 +33103,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -34725,7 +34672,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -34786,7 +34734,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -39862,7 +39810,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -39923,7 +39872,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -40933,7 +40882,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -40994,7 +40944,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -41970,7 +41920,8 @@ requiresTrust: false,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -42031,7 +41982,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -43646,7 +43597,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -43707,7 +43659,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -43794,7 +43746,8 @@ requiresTrust: true,
 func: function (scriptletGlobals = {}, ...args) {
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -43855,7 +43808,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -44384,7 +44337,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -44445,7 +44399,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
@@ -44760,7 +44714,8 @@ function safeSelf() {
 }
 function proxyApplyFn(
     target = '',
-    handler = ''
+    handler = '',
+    options = {}
 ) {
     let context = globalThis;
     let prop = target;
@@ -44821,7 +44776,7 @@ function proxyApplyFn(
         };
         proxyApplyFn.isCtor = new Map();
         proxyApplyFn.proxies = new WeakMap();
-        if ( proxyApplyFn.skipToString !== true ) {
+        if ( (options.skipToString || proxyApplyFn.skipToString) !== true ) {
             proxyApplyFn.nativeToString = Function.prototype.toString;
             const proxiedToString = new Proxy(Function.prototype.toString, {
                 apply(target, thisArg) {
