@@ -368,6 +368,14 @@ function abortCurrentScript(...args) {
         abortCurrentScriptFn(...args);
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 abortCurrentScript(...args);
 },
 };
@@ -670,6 +678,14 @@ function setAttr(
     const options = safe.parseVarargs(varargs);
     setAttrFn(false, logPrefix, selector, attr, value, options);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 setAttr(...args);
 },
 };
@@ -962,6 +978,14 @@ function trustedSetAttr(
     const options = safe.parseVarargs(varargs);
     setAttrFn(true, logPrefix, selector, attr, value, options);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedSetAttr(...args);
 },
 };
@@ -1281,6 +1305,14 @@ function removeAttr(
     };
     runAt(( ) => { start(); }, safe.String_split.call(behavior, /\s+/));
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 removeAttr(...args);
 },
 };
@@ -1577,6 +1609,14 @@ function trustedCreateHTML(
     };
     runAt(start, extraArgs.runAt || 'loading');
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedCreateHTML(...args);
 },
 };
@@ -1980,6 +2020,14 @@ function hrefSanitizer(
     };
     runAt(( ) => { start(); }, 'interactive');
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 hrefSanitizer(...args);
 },
 };
@@ -2860,6 +2908,14 @@ function editOutboundObjectFn(
 function editOutboundObject(propChain = '', jsonq = '') {
     editOutboundObjectFn(false, propChain, jsonq);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 editOutboundObject(...args);
 },
 };
@@ -3720,6 +3776,14 @@ function editOutboundObjectFn(
 function trustedEditOutboundObject(propChain = '', jsonq = '') {
     editOutboundObjectFn(true, propChain, jsonq);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedEditOutboundObject(...args);
 },
 };
@@ -4579,6 +4643,14 @@ function jsonEditFn(trusted = false, jsonq = '', ...varargs) {
 function jsonEdit(jsonq = '', ...varargs) {
     jsonEditFn(false, jsonq, ...varargs);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 jsonEdit(...args);
 },
 };
@@ -5438,6 +5510,14 @@ function jsonEditFn(trusted = false, jsonq = '', ...varargs) {
 function trustedJsonEdit(jsonq = '', ...varargs) {
     jsonEditFn(true, jsonq, ...varargs);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedJsonEdit(...args);
 },
 };
@@ -6325,6 +6405,14 @@ function editInboundObjectFn(
 function editInboundObject(propChain = '', argPos = '', jsonq = '') {
     editInboundObjectFn(false, propChain, argPos, jsonq);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 editInboundObject(...args);
 },
 };
@@ -7212,6 +7300,14 @@ function editInboundObjectFn(
 function trustedEditInboundObject(propChain = '', argPos = '', jsonq = '') {
     editInboundObjectFn(true, propChain, argPos, jsonq);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedEditInboundObject(...args);
 },
 };
@@ -8082,6 +8178,14 @@ function editThisObjectFn(
 function editThisObject(...args) {
     editThisObjectFn(false, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 editThisObject(...args);
 },
 };
@@ -8952,6 +9056,14 @@ function editThisObjectFn(
 function trustedEditThisObject(...args) {
     editThisObjectFn(true, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedEditThisObject(...args);
 },
 };
@@ -9794,6 +9906,14 @@ function editObjectOnGetterFn(
 function editObjectOnGetter(...args) {
     editObjectOnGetterFn(false, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 editObjectOnGetter(...args);
 },
 };
@@ -10636,6 +10756,14 @@ function editObjectOnGetterFn(
 function trustedEditObjectOnGetter(...args) {
     editObjectOnGetterFn(true, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedEditObjectOnGetter(...args);
 },
 };
@@ -11481,6 +11609,14 @@ function editObjectOnSetterFn(
 function editObjectOnSetter(...args) {
     editObjectOnSetterFn(false, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 editObjectOnSetter(...args);
 },
 };
@@ -12326,6 +12462,14 @@ function editObjectOnSetterFn(
 function trustedEditObjectOnSetter(...args) {
     editObjectOnSetterFn(true, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedEditObjectOnSetter(...args);
 },
 };
@@ -13211,6 +13355,14 @@ async function editElementObjectFn(
 function editElementObject(...args) {
     editElementObjectFn(false, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 editElementObject(...args);
 },
 };
@@ -14096,6 +14248,14 @@ async function editElementObjectFn(
 function trustedEditElementObject(...args) {
     editElementObjectFn(true, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedEditElementObject(...args);
 },
 };
@@ -14937,6 +15097,14 @@ function jsonEditXhrResponseFn(trusted, jsonq = '', ...varargs) {
 function jsonEditXhrResponse(jsonq = '', ...args) {
     jsonEditXhrResponseFn(false, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 jsonEditXhrResponse(...args);
 },
 };
@@ -15778,6 +15946,14 @@ function jsonEditXhrResponseFn(trusted, jsonq = '', ...varargs) {
 function trustedJsonEditXhrResponse(jsonq = '', ...args) {
     jsonEditXhrResponseFn(true, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedJsonEditXhrResponse(...args);
 },
 };
@@ -16602,6 +16778,14 @@ function jsonEditXhrRequestFn(trusted, jsonq = '', ...varargs) {
 function jsonEditXhrRequest(jsonq = '', ...args) {
     jsonEditXhrRequestFn(false, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 jsonEditXhrRequest(...args);
 },
 };
@@ -17426,6 +17610,14 @@ function jsonEditXhrRequestFn(trusted, jsonq = '', ...varargs) {
 function trustedJsonEditXhrRequest(jsonq = '', ...args) {
     jsonEditXhrRequestFn(true, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedJsonEditXhrRequest(...args);
 },
 };
@@ -18384,6 +18576,14 @@ function jsonEditFetchResponseFn(trusted, jsonq = '', ...varargs) {
 function jsonEditFetchResponse(jsonq = '', ...args) {
     jsonEditFetchResponseFn(false, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 jsonEditFetchResponse(...args);
 },
 };
@@ -19342,6 +19542,14 @@ function jsonEditFetchResponseFn(trusted, jsonq = '', ...varargs) {
 function trustedJsonEditFetchResponse(jsonq = '', ...args) {
     jsonEditFetchResponseFn(true, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedJsonEditFetchResponse(...args);
 },
 };
@@ -20297,6 +20505,14 @@ function jsonEditFetchRequestFn(trusted, jsonq = '', ...varargs) {
 function jsonEditFetchRequest(jsonq = '', ...args) {
     jsonEditFetchRequestFn(false, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 jsonEditFetchRequest(...args);
 },
 };
@@ -21252,6 +21468,14 @@ function jsonEditFetchRequestFn(trusted, jsonq = '', ...varargs) {
 function trustedJsonEditFetchRequest(jsonq = '', ...args) {
     jsonEditFetchRequestFn(true, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedJsonEditFetchRequest(...args);
 },
 };
@@ -22121,6 +22345,14 @@ function jsonlEditXhrResponseFn(trusted, jsonq = '', ...varargs) {
 function jsonlEditXhrResponse(jsonq = '', ...args) {
     jsonlEditXhrResponseFn(false, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 jsonlEditXhrResponse(...args);
 },
 };
@@ -22990,6 +23222,14 @@ function jsonlEditXhrResponseFn(trusted, jsonq = '', ...varargs) {
 function trustedJsonlEditXhrResponse(jsonq = '', ...args) {
     jsonlEditXhrResponseFn(true, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedJsonlEditXhrResponse(...args);
 },
 };
@@ -23989,6 +24229,14 @@ function jsonlEditFetchResponseFn(trusted, jsonq = '', ...varargs) {
 function jsonlEditFetchResponse(jsonq = '', ...args) {
     jsonlEditFetchResponseFn(false, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 jsonlEditFetchResponse(...args);
 },
 };
@@ -24988,6 +25236,14 @@ function jsonlEditFetchResponseFn(trusted, jsonq = '', ...varargs) {
 function trustedJsonlEditFetchResponse(jsonq = '', ...args) {
     jsonlEditFetchResponseFn(true, jsonq, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedJsonlEditFetchResponse(...args);
 },
 };
@@ -25286,6 +25542,14 @@ function abortOnStackTrace(
     const owner = window;
     makeProxy(owner, chain);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 abortOnStackTrace(...args);
 },
 };
@@ -25703,6 +25967,14 @@ function trustedPruneInboundObject(
         },
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedPruneInboundObject(...args);
 },
 };
@@ -26172,6 +26444,14 @@ function trustedPruneOutboundObject(
         return objAfter || objBefore;
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedPruneOutboundObject(...args);
 },
 };
@@ -26649,6 +26929,14 @@ function jsonPrune(
         return objAfter;
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 jsonPrune(...args);
 },
 };
@@ -27134,6 +27422,14 @@ function jsonPruneFetchResponse(
         apply: applyHandler
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 jsonPruneFetchResponse(...args);
 },
 };
@@ -27604,6 +27900,14 @@ function jsonPruneXhrResponse(
         }
     };
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 jsonPruneXhrResponse(...args);
 },
 };
@@ -28063,6 +28367,14 @@ function evaldataPrune(
         return after || before;
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 evaldataPrune(...args);
 },
 };
@@ -28365,6 +28677,14 @@ function noEvalIf(
         return context.reflect();
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 noEvalIf(...args);
 },
 };
@@ -28768,6 +29088,14 @@ function preventAddEventListener(
         }
     }, extraArgs.runAt);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventAddEventListener(...args);
 },
 };
@@ -29113,6 +29441,14 @@ function preventBab() {
         return context.reflect();
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventBab(...args);
 },
 };
@@ -29517,6 +29853,14 @@ function preventClipboardWrite(matches = '', ...varargs) {
         });
     }, 'interactive')
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventClipboardWrite(...args);
 },
 };
@@ -29727,6 +30071,14 @@ function preventDialog(
         subtree: true,
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventDialog(...args);
 },
 };
@@ -30231,6 +30583,14 @@ function preventFetchFn(
 function preventFetch(...args) {
     preventFetchFn(false, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventFetch(...args);
 },
 };
@@ -30735,6 +31095,14 @@ function preventFetchFn(
 function trustedPreventFetch(...args) {
     preventFetchFn(true, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedPreventFetch(...args);
 },
 };
@@ -30971,6 +31339,14 @@ function freezeElementProperty(
         },
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 freezeElementProperty(...args);
 },
 };
@@ -31213,6 +31589,14 @@ function preventInnerHTML(
 ) {
     freezeElementProperty('innerHTML', selector, pattern);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventInnerHTML(...args);
 },
 };
@@ -31417,6 +31801,14 @@ function preventNavigation(
         }
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventNavigation(...args);
 },
 };
@@ -31755,6 +32147,14 @@ function preventSetTimeout(
         return context.reflect();
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventSetTimeout(...args);
 },
 };
@@ -32093,6 +32493,14 @@ function preventSetInterval(
         return context.reflect();
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventSetInterval(...args);
 },
 };
@@ -32396,6 +32804,14 @@ function preventRequestAnimationFrame(
         return context.reflect();
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventRequestAnimationFrame(...args);
 },
 };
@@ -32814,6 +33230,14 @@ function setConstant(
 ) {
     setConstantFn(false, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 setConstant(...args);
 },
 };
@@ -33232,6 +33656,14 @@ function trustedSetConstant(
 ) {
     setConstantFn(true, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedSetConstant(...args);
 },
 };
@@ -33743,6 +34175,14 @@ function trustedReplaceArgument(
         return context.reflect();
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedReplaceArgument(...args);
 },
 };
@@ -34044,6 +34484,14 @@ function spoofCSS(
         },
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 spoofCSS(...args);
 },
 };
@@ -34600,6 +35048,14 @@ function preventXhrFn(
 function preventXhr(...args) {
     preventXhrFn(false, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventXhr(...args);
 },
 };
@@ -35156,6 +35612,14 @@ function preventXhrFn(
 function trustedPreventXhr(...args) {
     preventXhrFn(true, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedPreventXhr(...args);
 },
 };
@@ -35585,6 +36049,14 @@ function mpegdashPrune(
         return before;
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 mpegdashPrune(...args);
 },
 };
@@ -35906,6 +36378,14 @@ function setCookie(
         safe.uboLog(logPrefix, 'Done');
     }
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 setCookie(...args);
 },
 };
@@ -36230,6 +36710,14 @@ function setCookie(
 function setCookieReload(name, value, path, ...args) {
     setCookie(name, value, path, 'reload', '1', ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 setCookieReload(...args);
 },
 };
@@ -36540,6 +37028,14 @@ function trustedSetCookie(
         safe.uboLog(logPrefix, 'Done');
     }
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedSetCookie(...args);
 },
 };
@@ -36853,6 +37349,14 @@ function trustedSetCookie(
 function trustedSetCookieReload(name, value, offsetExpiresSec, path, ...args) {
     trustedSetCookie(name, value, offsetExpiresSec, path, 'reload', '1', ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedSetCookieReload(...args);
 },
 };
@@ -37109,6 +37613,14 @@ function removeCookie(
         }, { passive: true });
     }
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 removeCookie(...args);
 },
 };
@@ -37403,6 +37915,14 @@ function setLocalStorageItem(key = '', value = '', ...varargs) {
     const options = safe.parseVarargs(varargs)
     setLocalStorageItemFn('local', false, key, value, options);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 setLocalStorageItem(...args);
 },
 };
@@ -37697,6 +38217,14 @@ function setSessionStorageItem(key = '', value = '', ...varargs) {
     const options = safe.parseVarargs(varargs)
     setLocalStorageItemFn('session', false, key, value, options);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 setSessionStorageItem(...args);
 },
 };
@@ -37991,6 +38519,14 @@ function trustedSetLocalStorageItem(key = '', value = '', ...varargs) {
     const options = safe.parseVarargs(varargs)
     setLocalStorageItemFn('local', true, key, value, options);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedSetLocalStorageItem(...args);
 },
 };
@@ -38285,6 +38821,14 @@ function trustedSetSessionStorageItem(key = '', value = '', ...varargs) {
     const options = safe.parseVarargs(varargs)
     setLocalStorageItemFn('session', true, key, value, options);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedSetSessionStorageItem(...args);
 },
 };
@@ -38531,6 +39075,14 @@ function abortOnPropertyRead(
     const owner = window;
     makeProxy(owner, chain);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 abortOnPropertyRead(...args);
 },
 };
@@ -38755,6 +39307,14 @@ function abortOnPropertyWrite(
         }
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 abortOnPropertyWrite(...args);
 },
 };
@@ -38966,6 +39526,14 @@ function adjustSetInterval(
         }
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 adjustSetInterval(...args);
 },
 };
@@ -39177,6 +39745,14 @@ function adjustSetTimeout(
         }
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 adjustSetTimeout(...args);
 },
 };
@@ -39386,6 +39962,14 @@ function preventRefresh(
     };
     self.addEventListener('load', defuse, { capture: true, once: true });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventRefresh(...args);
 },
 };
@@ -39666,6 +40250,14 @@ function removeClass(
         start();
     }, /\bcomplete\b/.test(behavior) ? 'idle' : 'loading');
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 removeClass(...args);
 },
 };
@@ -39908,6 +40500,14 @@ function webrtcIf(
             }
         });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 webrtcIf(...args);
 },
 };
@@ -40275,6 +40875,14 @@ function noWindowOpenIf(
         return popup;
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 noWindowOpenIf(...args);
 },
 };
@@ -40479,6 +41087,14 @@ function closeWindow(
         console.log(ex);
     }
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 closeWindow(...args);
 },
 };
@@ -41045,6 +41661,14 @@ function xmlPrune(
         return before;
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 xmlPrune(...args);
 },
 };
@@ -41485,6 +42109,14 @@ function m3uPrune(
         }
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 m3uPrune(...args);
 },
 };
@@ -41697,6 +42329,14 @@ function callNothrow(
         },
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 callNothrow(...args);
 },
 };
@@ -42035,6 +42675,14 @@ function removeNodeText(
 ) {
     replaceNodeTextFn(nodeName, '', '', 'includes', includes || '', ...extraArgs);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 removeNodeText(...args);
 },
 };
@@ -42232,6 +42880,14 @@ function preventCanvas(
         }
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 preventCanvas(...args);
 },
 };
@@ -42711,6 +43367,14 @@ function replaceNodeText(
 ) {
     replaceNodeTextFn(nodeName, pattern, replacement, ...extraArgs);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 replaceNodeText(...args);
 },
 };
@@ -43030,6 +43694,14 @@ function replaceFetchResponseFn(
 function trustedReplaceFetchResponse(...args) {
     replaceFetchResponseFn(true, ...args);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedReplaceFetchResponse(...args);
 },
 };
@@ -43323,6 +43995,14 @@ function trustedReplaceXhrResponse(
         }
     };
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedReplaceXhrResponse(...args);
 },
 };
@@ -43756,6 +44436,14 @@ function trustedClickElement(
 
     runAtHtmlElementFn(process);
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedClickElement(...args);
 },
 };
@@ -44079,6 +44767,14 @@ function trustedReplaceOutboundText(
         return encodedTextAfter;
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedReplaceOutboundText(...args);
 },
 };
@@ -44488,6 +45184,14 @@ function trustedSuppressNativeMethod(
         }
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedSuppressNativeMethod(...args);
 },
 };
@@ -44810,6 +45514,14 @@ function trustedPreventDomBypass(
         return r;
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedPreventDomBypass(...args);
 },
 };
@@ -45176,6 +45888,14 @@ function trustedOverrideElementMethod(
         return validateConstantFn(true, disposition, extraArgs);
     });
 };
+try {
+    const key = Symbol.for('safeSelf.1.75.1b1');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
 trustedOverrideElementMethod(...args);
 },
 };

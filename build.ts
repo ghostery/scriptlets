@@ -18,6 +18,19 @@ for (const scriptlet of scriptlets) {
   }
 }
 
+// uBO runs all scriptlets of a page in one scope, so they share one safeSelf() cache. Our scriptlets are separate functions, so they share it on globalThis.
+// Else each hook captures the earlier hooks as natives, and calls grow as 2^n. The uBO version is in the key, so other versions do not share it.
+const safeSelf = index.get('safe-self.fn').fn;
+const shareSafeSelf = `try {
+    const key = Symbol.for('safeSelf.${tagName}');
+    safeSelf.safe = globalThis[key];
+    if ( safeSelf.safe === undefined ) {
+        Object.defineProperty(globalThis, key, { value: safeSelf() });
+    }
+} catch {
+}
+`;
+
 console.log(`
 /*******************************************************************************
 
@@ -67,7 +80,7 @@ requiresTrust: ${scriptlet.requiresTrust || false},
 func: function (scriptletGlobals = {}, ...args) {
 ${deps.map((dep) => dep.toString()).join('\n')}
 ${scriptlet.fn.toString()};
-${scriptlet.fn.name}(...args);
+${deps.includes(safeSelf) ? shareSafeSelf : ''}${scriptlet.fn.name}(...args);
 },
 };
 `;
