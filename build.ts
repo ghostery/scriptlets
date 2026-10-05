@@ -31,6 +31,49 @@ const shareSafeSelf = `try {
 }
 `;
 
+// Each function once, by name, so compose() and run() can declare them in one shared scope.
+const functions = new Map();
+const entryFunctions = [];
+
+const entries = scriptlets
+  .filter(scriptlet => scriptlet.name.endsWith('.js'))
+  .map((scriptlet) => {
+    const allDependencies = new Set();
+
+    const addDeps = (aScriptlet) => {
+      for (const dep of aScriptlet.dependencies || []) {
+        allDependencies.add(dep);
+        const bScriptlet = index.get(dep);
+        addDeps(bScriptlet);
+      }
+    };
+
+    addDeps(scriptlet);
+
+    const deps = [...allDependencies].reverse().map((dep) => index.get(dep).fn);
+
+    for (const fn of [...deps, scriptlet.fn]) {
+      functions.set(fn.name, fn.toString());
+    }
+    entryFunctions.push(scriptlet.fn.name);
+
+    return `
+scriptlets['${scriptlet.name}'] = {
+aliases: ${JSON.stringify(scriptlet.aliases || [])},
+${scriptlet.world ? `world: '${scriptlet.world}',` : '' }
+requiresTrust: ${scriptlet.requiresTrust || false},
+fn: '${scriptlet.fn.name}',
+dependencies: ${JSON.stringify(deps.map((dep) => dep.name))},
+func: function (scriptletGlobals = {}, ...args) {
+${deps.map((dep) => dep.toString()).join('\n')}
+${scriptlet.fn.toString()};
+${deps.includes(safeSelf) ? shareSafeSelf : ''}${scriptlet.fn.name}(...args);
+},
+};
+`;
+  })
+  .join('\n');
+
 console.log(`
 /*******************************************************************************
 
@@ -53,39 +96,21 @@ console.log(`
     Home: https://github.com/gorhill/uBlock
 
 */
+const functions = {};
+${[...functions].map(([name, source]) => `functions['${name}'] = ${source};`).join('\n')}
+
 const scriptlets = {};
+${entries}
 
-${scriptlets
-  .filter(scriptlet => scriptlet.name.endsWith('.js'))
-  .map((scriptlet) => {
-    const allDependencies = new Set();
+// For chrome.scripting.executeScript(), which takes a function and JSON arguments but no code.
+export function run(scriptletGlobals, calls) {
+${[...functions.values()].join('\n')}
+const table = { ${entryFunctions.join(', ')} };
+for (const [name, ...args] of calls) {
+  try { table[name](...args); } catch {}
+}
+}
 
-    const addDeps = (aScriptlet) => {
-      for (const dep of aScriptlet.dependencies || []) {
-        allDependencies.add(dep);
-        const bScriptlet = index.get(dep);
-        addDeps(bScriptlet);
-      }
-    };
-
-    addDeps(scriptlet);
-
-    const deps = [...allDependencies].reverse().map((dep) => index.get(dep).fn);
-
-    return `
-scriptlets['${scriptlet.name}'] = {
-aliases: ${JSON.stringify(scriptlet.aliases || [])},
-${scriptlet.world ? `world: '${scriptlet.world}',` : '' }
-requiresTrust: ${scriptlet.requiresTrust || false},
-func: function (scriptletGlobals = {}, ...args) {
-${deps.map((dep) => dep.toString()).join('\n')}
-${scriptlet.fn.toString()};
-${deps.includes(safeSelf) ? shareSafeSelf : ''}${scriptlet.fn.name}(...args);
-},
-};
-`;
-  })
-  .join('\n')}
-
+export { functions };
 export default scriptlets;
 `);
