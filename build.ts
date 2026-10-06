@@ -10,51 +10,10 @@ const { builtinScriptlets: scriptlets } = await import(
   `https://raw.githubusercontent.com/gorhill/uBlock/${tagName}/src/js/resources/scriptlets.js`
 );
 
-const index = new Map();
-for (const scriptlet of scriptlets) {
-  index.set(scriptlet.name, scriptlet);
-  for (const name of scriptlet.aliases || []) {
-    index.set(name, scriptlet);
-  }
-}
-
-// Each function once, by name, so compose() and run() can declare them in one shared scope.
-const functions = new Map();
-const entryFunctions = [];
-
-const entries = scriptlets
-  .filter(scriptlet => scriptlet.name.endsWith('.js'))
-  .map((scriptlet) => {
-    const allDependencies = new Set();
-
-    const addDeps = (aScriptlet) => {
-      for (const dep of aScriptlet.dependencies || []) {
-        allDependencies.add(dep);
-        const bScriptlet = index.get(dep);
-        addDeps(bScriptlet);
-      }
-    };
-
-    addDeps(scriptlet);
-
-    const deps = [...allDependencies].reverse().map((dep) => index.get(dep).fn);
-
-    for (const fn of [...deps, scriptlet.fn]) {
-      functions.set(fn.name, fn.toString());
-    }
-    entryFunctions.push(scriptlet.fn.name);
-
-    return `
-scriptlets['${scriptlet.name}'] = {
-aliases: ${JSON.stringify(scriptlet.aliases || [])},
-${scriptlet.world ? `world: '${scriptlet.world}',` : '' }
-requiresTrust: ${scriptlet.requiresTrust || false},
-fn: '${scriptlet.fn.name}',
-dependencies: ${JSON.stringify(deps.map((dep) => dep.name))},
-};
-`;
-  })
-  .join('\n');
+// Every function once, by name; run() declares them all in one scope, so the scriptlets of an
+// injection share one safeSelf() cache without touching globalThis, as in uBO.
+const functions = new Map(scriptlets.map((scriptlet) => [scriptlet.fn.name, scriptlet.fn.toString()]));
+const entries = scriptlets.filter((scriptlet) => scriptlet.name.endsWith('.js'));
 
 console.log(`
 /*******************************************************************************
@@ -78,21 +37,28 @@ console.log(`
     Home: https://github.com/gorhill/uBlock
 
 */
-const functions = {};
-${[...functions].map(([name, source]) => `functions['${name}'] = ${source};`).join('\n')}
-
 const scriptlets = {};
-${entries}
+${entries
+  .map(
+    (scriptlet) => `
+scriptlets['${scriptlet.name}'] = {
+aliases: ${JSON.stringify(scriptlet.aliases || [])},
+${scriptlet.world ? `world: '${scriptlet.world}',` : ''}
+requiresTrust: ${scriptlet.requiresTrust || false},
+fn: '${scriptlet.fn.name}',
+};
+`,
+  )
+  .join('\n')}
 
-// For chrome.scripting.executeScript(), which takes a function and JSON arguments but no code.
+// The calls come last, so the class dependencies, which are not hoisted, are declared by then.
 export function run(scriptletGlobals, calls) {
 ${[...functions.values()].join('\n')}
-const table = { ${entryFunctions.join(', ')} };
+const table = { ${entries.map((scriptlet) => scriptlet.fn.name).join(', ')} };
 for (const [name, ...args] of calls) {
   try { table[name](...args); } catch {}
 }
 }
 
-export { functions };
 export default scriptlets;
 `);
