@@ -1,4 +1,4 @@
-import SCRIPTLETS from './ubo.js';
+import SCRIPTLETS, { run } from './ubo.js';
 
 const scriptlets = {};
 
@@ -9,4 +9,5 @@ for (const [name, scriptlet] of Object.entries(SCRIPTLETS)) {
   }
 }
 
+export { run };
 export default scriptlets;

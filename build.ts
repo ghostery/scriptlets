@@ -10,26 +10,10 @@ const { builtinScriptlets: scriptlets } = await import(
   `https://raw.githubusercontent.com/gorhill/uBlock/${tagName}/src/js/resources/scriptlets.js`
 );
 
-const index = new Map();
-for (const scriptlet of scriptlets) {
-  index.set(scriptlet.name, scriptlet);
-  for (const name of scriptlet.aliases || []) {
-    index.set(name, scriptlet);
-  }
-}
-
-// uBO runs all scriptlets of a page in one scope, so they share one safeSelf() cache. Our scriptlets are separate functions, so they share it on globalThis.
-// Else each hook captures the earlier hooks as natives, and calls grow as 2^n. The uBO version is in the key, so other versions do not share it.
-const safeSelf = index.get('safe-self.fn').fn;
-const shareSafeSelf = `try {
-    const key = Symbol.for('safeSelf.${tagName}');
-    safeSelf.safe = globalThis[key];
-    if ( safeSelf.safe === undefined ) {
-        Object.defineProperty(globalThis, key, { value: safeSelf() });
-    }
-} catch {
-}
-`;
+// Every function once, by name; run() declares them all in one scope, so the scriptlets of an
+// injection share one safeSelf() cache without touching globalThis, as in uBO.
+const functions = new Map(scriptlets.map((scriptlet) => [scriptlet.fn.name, scriptlet.fn.toString()]));
+const entries = scriptlets.filter((scriptlet) => scriptlet.name.endsWith('.js'));
 
 console.log(`
 /*******************************************************************************
@@ -54,38 +38,27 @@ console.log(`
 
 */
 const scriptlets = {};
-
-${scriptlets
-  .filter(scriptlet => scriptlet.name.endsWith('.js'))
-  .map((scriptlet) => {
-    const allDependencies = new Set();
-
-    const addDeps = (aScriptlet) => {
-      for (const dep of aScriptlet.dependencies || []) {
-        allDependencies.add(dep);
-        const bScriptlet = index.get(dep);
-        addDeps(bScriptlet);
-      }
-    };
-
-    addDeps(scriptlet);
-
-    const deps = [...allDependencies].reverse().map((dep) => index.get(dep).fn);
-
-    return `
+${entries
+  .map(
+    (scriptlet) => `
 scriptlets['${scriptlet.name}'] = {
 aliases: ${JSON.stringify(scriptlet.aliases || [])},
-${scriptlet.world ? `world: '${scriptlet.world}',` : '' }
+${scriptlet.world ? `world: '${scriptlet.world}',` : ''}
 requiresTrust: ${scriptlet.requiresTrust || false},
-func: function (scriptletGlobals = {}, ...args) {
-${deps.map((dep) => dep.toString()).join('\n')}
-${scriptlet.fn.toString()};
-${deps.includes(safeSelf) ? shareSafeSelf : ''}${scriptlet.fn.name}(...args);
-},
+fn: '${scriptlet.fn.name}',
 };
-`;
-  })
+`,
+  )
   .join('\n')}
+
+// The calls come last, so the class dependencies, which are not hoisted, are declared by then.
+export function run(scriptletGlobals, calls) {
+${[...functions.values()].join('\n')}
+const table = { ${entries.map((scriptlet) => scriptlet.fn.name).join(', ')} };
+for (const [name, ...args] of calls) {
+  try { table[name](...args); } catch {}
+}
+}
 
 export default scriptlets;
 `);

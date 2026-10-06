@@ -1,7 +1,9 @@
 import { test, suite } from "node:test";
 import assert from "node:assert";
 import vm from "node:vm";
-import scriptlets from "./index.js";
+import scriptlets, { run } from "./index.js";
+
+const runSource = run.toString();
 
 test("default export is an object", () => {
   assert(typeof scriptlets === "object");
@@ -11,8 +13,8 @@ test("each scriptlet has basic properties", () => {
   for (const [name, scriptlet] of Object.entries(scriptlets)) {
     assert(name.length > 0, `${name} - name is too short`);
     assert(
-      scriptlet.func instanceof Function,
-      `${name} - func is not have a Function`
+      runSource.includes(`function ${scriptlet.fn}(`),
+      `${name} - fn does not name a function of run()`
     );
     assert(
       scriptlet.aliases instanceof Array,
@@ -28,14 +30,16 @@ suite("uBO", () => {
   });
 });
 
-suite("safeSelf() cache", () => {
+suite("run()", () => {
   // Each hook clones the argument with safe.JSON_parse(safe.JSON_stringify(obj))
-  const func = scriptlets["trusted-edit-inbound-object.js"].func;
+  const scriptlet = scriptlets["trusted-edit-inbound-object.js"];
   const HOOKS = 6;
-  // Same code as the extension makes for each scriptlet; the first argument is scriptletGlobals
-  const hooks = Array.from({ length: HOOKS }, (_, i) =>
-    `(${func})(...${JSON.stringify([{}, "JSON.stringify", "0", `[?.hook${i}]+={"edited${i}":true}`])});`
-  );
+  const calls = Array.from({ length: HOOKS }, (_, i) => [
+    scriptlet.fn,
+    "JSON.stringify",
+    "0",
+    `[?.hook${i}]+={"edited${i}":true}`,
+  ]);
 
   // A fresh realm is the page; counters wrap the native JSON methods before the scriptlets run
   function createPage() {
@@ -52,11 +56,14 @@ suite("safeSelf() cache", () => {
     return page;
   }
 
-  test("is shared in a realm, so stacked hooks stay linear", () => {
+  test("declares safeSelf() once", () => {
+    assert.strictEqual(runSource.match(/^function safeSelf\(/gm).length, 1);
+  });
+
+  test("shares one safeSelf() cache, so stacked hooks stay linear", () => {
     const page = createPage();
-    for (const hook of hooks) {
-      vm.runInContext(hook, page);
-    }
+    // Same call as chrome.scripting.executeScript() makes: the function source with JSON arguments
+    vm.runInContext(`(${runSource})(...${JSON.stringify([{}, calls])});`, page);
 
     const result = vm.runInContext(
       "calls.parse = 0; calls.stringify = 0; JSON.stringify({ hook0: true, hook5: true });",
@@ -67,15 +74,13 @@ suite("safeSelf() cache", () => {
     assert.deepStrictEqual({ ...page.calls }, { parse: HOOKS, stringify: HOOKS + 1 });
   });
 
-  test("is read-only and not enumerable", () => {
+  test("leaves no global behind", () => {
     const page = createPage();
-    vm.runInContext(hooks.join("\n"), page);
+    vm.runInContext(`(${runSource})(...${JSON.stringify([{}, calls])});`, page);
 
     const keys = vm
       .runInContext("Object.getOwnPropertySymbols(globalThis)", page)
       .filter((key) => key.description.startsWith("safeSelf."));
-    assert.strictEqual(keys.length, 1);
-    const { value, ...flags } = Object.getOwnPropertyDescriptor(page, keys[0]);
-    assert.deepStrictEqual(flags, { writable: false, enumerable: false, configurable: false });
+    assert.strictEqual(keys.length, 0);
   });
 });
