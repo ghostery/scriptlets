@@ -238,6 +238,14 @@ fn: 'trustedJsonEditFetchResponse',
 };
 
 
+scriptlets['trusted-edit-inbound-element.js'] = {
+aliases: [],
+
+requiresTrust: true,
+fn: 'trustedEditInboundElement',
+};
+
+
 scriptlets['json-edit-fetch-request.js'] = {
 aliases: [],
 
@@ -836,12 +844,15 @@ function safeSelf() {
         'String_fromCharCode': String.fromCharCode,
         'String_split': String.prototype.split,
         'XMLHttpRequest': self.XMLHttpRequest,
+        'XMLHttpRequest_open': Function.prototype.call.bind(self.XMLHttpRequest.prototype.open),
+        'XMLHttpRequest_send': Function.prototype.call.bind(self.XMLHttpRequest.prototype.send),
         'addEventListener': self.EventTarget.prototype.addEventListener,
         'removeEventListener': self.EventTarget.prototype.removeEventListener,
         'fetch': self.fetch,
         'JSON': self.JSON,
         'JSON_parse': Function.prototype.call.bind(self.JSON.parse, self.JSON),
         'JSON_stringify': Function.prototype.call.bind(self.JSON.stringify, self.JSON),
+        'structuredClone': Function.prototype.call.bind(self.structuredClone, self),
         'log': console.log.bind(console),
         // Properties
         logLevel: 0,
@@ -1177,23 +1188,8 @@ function generateContentFn(trusted, directive) {
         return randomize(len | 0);
     }
     if ( directive.startsWith('war:') ) {
-        if ( scriptletGlobals.warOrigin === undefined ) { return ''; }
-        return new Promise(resolve => {
-            const warOrigin = scriptletGlobals.warOrigin;
-            const warName = directive.slice(4);
-            const fullpath = [ warOrigin, '/', warName ];
-            const warSecret = scriptletGlobals.warSecret;
-            if ( warSecret !== undefined ) {
-                fullpath.push('?secret=', warSecret);
-            }
-            const warXHR = new safe.XMLHttpRequest();
-            warXHR.responseType = 'text';
-            warXHR.onloadend = ev => {
-                resolve(ev.target.responseText || '');
-            };
-            warXHR.open('GET', fullpath.join(''));
-            warXHR.send();
-        }).catch(( ) => '');
+        // TODO: resources should be fetched by messaging ISOLATED world
+        return '';
     }
     if ( directive.startsWith('join:') ) {
         const parts = directive.slice(7)
@@ -2325,12 +2321,13 @@ class JSONPath {
                     path: this.path.slice(),
                 };
                 const v = this.value.obj[this.value.key];
-                if ( recursive ) {
+                if ( recursive && typeof v === 'object' && v !== null && this.seen.has(v) === false ) {
                     if ( Array.isArray(v) ) {
                         this.stack.push({ obj: v, keys: v.keys() });
-                    } else if ( typeof v === 'object' && v !== null ) {
+                    } else {
                         this.stack.push({ obj: v, keys: JSONPath.keys(v).values() });
                     }
+                    this.seen.add(v);
                 }
                 return this;
             },
@@ -2338,6 +2335,7 @@ class JSONPath {
             value: undefined,
             done: false,
             stack: [],
+            seen: new WeakSet(),
             [Symbol.iterator]() { return this; },
         };
         if ( Array.isArray(v) ) {
@@ -2497,7 +2495,12 @@ class JSONPath {
             if ( rval instanceof Object === false ) { return; }
             const lval = obj[key];
             if ( lval instanceof Object === false ) { return; }
-            if ( Array.isArray(lval) ) { return; }
+            if ( Array.isArray(lval) ) {
+                if ( Array.isArray(rval) ) {
+                    lval.push(...rval); break;
+                }
+                lval.push(rval); break;
+            }
             for ( const [ k, v ] of JSONPath.entries(rval) ) {
                 lval[k] = v;
             }
@@ -2758,7 +2761,7 @@ function editInboundObjectFn(
     const editObj = obj => {
         let clone;
         try {
-            clone = safe.JSON_parse(safe.JSON_stringify(obj));
+            clone = safe.structuredClone(obj);
         } catch {
         }
         if ( typeof clone !== 'object' || clone === null ) { return; }
@@ -2773,9 +2776,12 @@ function editInboundObjectFn(
     proxyApplyFn(propChain, function(context) {
         const i = getArgPos(context.callArgs);
         if ( i !== undefined ) {
-            const obj = editObj(context.callArgs[i]);
-            if ( obj ) {
-                context.callArgs[i] = obj;
+            const objBefore = context.callArgs[i];
+            if ( typeof objBefore === 'object' ) {
+                const objAfter = editObj(objBefore);
+                if ( objAfter ) {
+                    context.callArgs[i] = objAfter;
+                }
             }
         }
         return context.reflect();
@@ -3191,6 +3197,55 @@ function jsonEditFetchRequestFn(trusted, jsonq = '', ...varargs) {
     };
     proxyApplyFn('fetch', proxyHandler);
     proxyApplyFn('Request', proxyHandler);
+}
+async function editInboundElementFn(
+    trusted = false,
+    propChain = '',
+    argPosRaw = '',
+    selector = '',
+    jsonq = ''
+) {
+    if ( propChain === '' ) { return; }
+    if ( selector === '' ) { return; }
+    const safe = safeSelf();
+    const logPrefix = safe.makeLogPrefix(
+        `${trusted ? 'trusted-' : ''}edit-inbound-element`,
+        propChain, argPosRaw, selector, jsonq
+    );
+    const jsonp = JSONPath.create(jsonq);
+    if ( jsonp.valid === false || jsonp.value !== undefined && trusted !== true ) {
+        return safe.uboLog(logPrefix, 'Bad JSONPath query');
+    }
+    const argPos = parseInt(argPosRaw, 10);
+    const getElem = context => {
+        if ( argPosRaw === 'this' ) { return context.thisArg; }
+        const { callArgs } = context;
+        if ( Array.isArray(callArgs) === false ) { return; }
+        if ( isNaN(argPos) ) { return; }
+        if ( argPos >= 0 ) {
+            if ( callArgs.length <= argPos ) { return; }
+            return callArgs[argPos];
+        }
+        if ( callArgs.length < -argPos ) { return; }
+        return callArgs[callArgs.length + argPos];
+    };
+    const editElem = elem => {
+        if ( elem instanceof Element === false ) { return; }
+        if ( elem.matches(selector) === false ) { return; }
+        elem = jsonp.apply(elem);
+        if ( elem === undefined ) { return; }
+        safe.uboLog(logPrefix, 'Edited');
+    };
+    proxyApplyFn(propChain, function(context) {
+        const elem = getElem(context);
+        if ( elem !== undefined ) {
+            editElem(elem);
+        }
+        return context.reflect();
+    });
+}
+function trustedEditInboundElement(...args) {
+    editInboundElementFn(true, ...args);
 }
 function jsonEditFetchRequest(jsonq = '', ...args) {
     jsonEditFetchRequestFn(false, jsonq, ...args);
@@ -6887,16 +6942,18 @@ function trustedPreventDomBypass(
                     }
                 }
                 if ( targetProp !== '' ) {
+                    const chains = targetProp.split(/\s+/);
                     let me = self, it = elem.contentWindow;
-                    let chain = targetProp;
-                    for (;;) {
-                        const pos = chain.indexOf('.');
-                        if ( pos === -1 ) { break; }
-                        const prop = chain.slice(0, pos);
-                        me = me[prop]; it = it[prop];
-                        chain = chain.slice(pos+1);
+                    for ( let chain of chains ) {
+                        for (;;) {
+                            const pos = chain.indexOf('.');
+                            if ( pos === -1 ) { break; }
+                            const prop = chain.slice(0, pos);
+                            me = me[prop]; it = it[prop];
+                            chain = chain.slice(pos+1);
+                        }
+                        it[chain] = me[chain];
                     }
-                    it[chain] = me[chain];
                 } else {
                     Object.defineProperty(elem, 'contentWindow', { value: self });
                 }
@@ -6940,7 +6997,7 @@ function trustedOverrideElementMethod(
         return validateConstantFn(true, disposition, extraArgs);
     });
 }
-const table = { abortCurrentScript, setAttr, trustedSetAttr, removeAttr, trustedCreateHTML, hrefSanitizer, proxyApplyConfig, editOutboundObject, trustedEditOutboundObject, jsonEdit, trustedJsonEdit, editInboundObject, trustedEditInboundObject, editThisObject, trustedEditThisObject, editObjectOnGetter, trustedEditObjectOnGetter, editObjectOnSetter, trustedEditObjectOnSetter, editElementObject, trustedEditElementObject, jsonEditXhrResponse, trustedJsonEditXhrResponse, jsonEditXhrRequest, trustedJsonEditXhrRequest, jsonEditFetchResponse, trustedJsonEditFetchResponse, jsonEditFetchRequest, trustedJsonEditFetchRequest, jsonlEditXhrResponse, trustedJsonlEditXhrResponse, jsonlEditFetchResponse, trustedJsonlEditFetchResponse, abortOnStackTrace, trustedPruneInboundObject, trustedPruneOutboundObject, jsonPrune, jsonPruneFetchResponse, jsonPruneXhrResponse, evaldataPrune, noEvalIf, preventAddEventListener, preventBab, preventClipboardWrite, preventDialog, preventFetch, trustedPreventFetch, freezeElementProperty, preventInnerHTML, preventNavigation, preventSetTimeout, preventSetInterval, preventRequestAnimationFrame, setConstant, trustedSetConstant, trustedReplaceArgument, spoofCSS, preventXhr, trustedPreventXhr, mpegdashPrune, setCookie, setCookieReload, trustedSetCookie, trustedSetCookieReload, removeCookie, setLocalStorageItem, setSessionStorageItem, trustedSetLocalStorageItem, trustedSetSessionStorageItem, abortOnPropertyRead, abortOnPropertyWrite, adjustSetInterval, adjustSetTimeout, preventRefresh, removeClass, webrtcIf, noWindowOpenIf, closeWindow, windowNameDefuser, overlayBuster, alertBuster, noWebrtc, disableNewtabLinks, xmlPrune, m3uPrune, callNothrow, removeNodeText, preventCanvas, multiup, breakOnCall, replaceNodeText, trustedReplaceFetchResponse, trustedReplaceXhrResponse, trustedClickElement, trustedReplaceOutboundText, trustedSuppressNativeMethod, trustedPreventDomBypass, trustedOverrideElementMethod };
+const table = { abortCurrentScript, setAttr, trustedSetAttr, removeAttr, trustedCreateHTML, hrefSanitizer, proxyApplyConfig, editOutboundObject, trustedEditOutboundObject, jsonEdit, trustedJsonEdit, editInboundObject, trustedEditInboundObject, editThisObject, trustedEditThisObject, editObjectOnGetter, trustedEditObjectOnGetter, editObjectOnSetter, trustedEditObjectOnSetter, editElementObject, trustedEditElementObject, jsonEditXhrResponse, trustedJsonEditXhrResponse, jsonEditXhrRequest, trustedJsonEditXhrRequest, jsonEditFetchResponse, trustedJsonEditFetchResponse, trustedEditInboundElement, jsonEditFetchRequest, trustedJsonEditFetchRequest, jsonlEditXhrResponse, trustedJsonlEditXhrResponse, jsonlEditFetchResponse, trustedJsonlEditFetchResponse, abortOnStackTrace, trustedPruneInboundObject, trustedPruneOutboundObject, jsonPrune, jsonPruneFetchResponse, jsonPruneXhrResponse, evaldataPrune, noEvalIf, preventAddEventListener, preventBab, preventClipboardWrite, preventDialog, preventFetch, trustedPreventFetch, freezeElementProperty, preventInnerHTML, preventNavigation, preventSetTimeout, preventSetInterval, preventRequestAnimationFrame, setConstant, trustedSetConstant, trustedReplaceArgument, spoofCSS, preventXhr, trustedPreventXhr, mpegdashPrune, setCookie, setCookieReload, trustedSetCookie, trustedSetCookieReload, removeCookie, setLocalStorageItem, setSessionStorageItem, trustedSetLocalStorageItem, trustedSetSessionStorageItem, abortOnPropertyRead, abortOnPropertyWrite, adjustSetInterval, adjustSetTimeout, preventRefresh, removeClass, webrtcIf, noWindowOpenIf, closeWindow, windowNameDefuser, overlayBuster, alertBuster, noWebrtc, disableNewtabLinks, xmlPrune, m3uPrune, callNothrow, removeNodeText, preventCanvas, multiup, breakOnCall, replaceNodeText, trustedReplaceFetchResponse, trustedReplaceXhrResponse, trustedClickElement, trustedReplaceOutboundText, trustedSuppressNativeMethod, trustedPreventDomBypass, trustedOverrideElementMethod };
 for (const [name, ...args] of calls) {
   try { table[name](...args); } catch {}
 }
