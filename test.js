@@ -84,3 +84,41 @@ suite("run()", () => {
     assert.strictEqual(keys.length, 0);
   });
 });
+
+suite("proxied functions", () => {
+  // A fresh realm is the page; returns it with the scriptlet applied
+  function createPage(name, ...args) {
+    const page = vm.createContext({ EventTarget: class {}, Request: class {} });
+    vm.runInContext("self = globalThis; nativeSetTimeout = setTimeout = function setTimeout() {};", page);
+    vm.runInContext(`(${runSource})(...${JSON.stringify([{}, [[scriptlets[name].fn, ...args]]])});`, page);
+    return page;
+  }
+
+  // Akamai Bot Manager's proxy probe
+  const probe = (fn) => `
+    (() => {
+      const fn = ${fn};
+      let error;
+      try { Object.setPrototypeOf(fn, Object.create(fn)); } catch (e) { error = e; }
+      return { error: error?.name, reflect: Reflect.setPrototypeOf(fn, Object.create(fn)), call: typeof fn.call };
+    })()
+  `;
+  const native = vm.runInContext(probe("function native() {}"), vm.createContext({}));
+
+  for (const [name, fn] of [
+    ["prevent-setTimeout.js", "Function.prototype.toString"], // proxied by proxyApplyFn()
+    ["adjust-setTimeout.js", "setTimeout"], // proxied by the scriptlet itself
+  ]) {
+    test(`${name}: rejects a cyclic prototype on ${fn} like a native function`, () => {
+      const page = createPage(name, "x");
+      assert(vm.runInContext("setTimeout !== nativeSetTimeout", page), `${name} did not run`);
+      assert.deepStrictEqual({ ...vm.runInContext(probe(fn), page) }, { ...native });
+    });
+  }
+
+  test("still sets a non-cyclic prototype", () => {
+    const page = createPage("prevent-setTimeout.js", "x");
+    const set = "const proto = Object.create(Function.prototype); Object.setPrototypeOf(setTimeout, proto) === setTimeout && Object.getPrototypeOf(setTimeout) === proto";
+    assert(vm.runInContext(set, page));
+  });
+});
