@@ -1,3 +1,5 @@
+import { createProxy } from './proxy.js';
+
 const tagName = Deno.args.includes('--tagName')
   ? Deno.args[Deno.args.findIndex((o) => o === '--tagName') + 1]
   : false;
@@ -52,7 +54,9 @@ fn: '${scriptlet.fn.name}',
   .join('\n')}
 
 // The calls come last, so the class dependencies, which are not hoisted, are declared by then.
+// Proxy shadows the global for every scriptlet in run(), see proxy.js.
 export function run(scriptletGlobals, calls) {
+const Proxy = (${createProxy})(globalThis.Proxy);
 ${[...functions.values()].join('\n')}
 const table = { ${entries.map((scriptlet) => scriptlet.fn.name).join(', ')} };
 for (const [name, ...args] of calls) {
