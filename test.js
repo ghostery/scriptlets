@@ -116,6 +116,22 @@ suite("proxied functions", () => {
     });
   }
 
+  test("rejects a cycle spanning two proxied functions like native functions", () => {
+    const probeBoth = (a, b) => `
+      (() => {
+        const a = ${a};
+        const b = ${b};
+        Object.setPrototypeOf(a, Object.create(b));
+        let error;
+        try { Object.setPrototypeOf(b, Object.create(a)); } catch (e) { error = e; }
+        return { error: error?.name, reflect: Reflect.setPrototypeOf(b, Object.create(a)), call: typeof b.call };
+      })()
+    `;
+    const expected = vm.runInContext(probeBoth("function a() {}", "function b() {}"), vm.createContext({}));
+    const page = createPage("prevent-setTimeout.js", "x");
+    assert.deepStrictEqual({ ...vm.runInContext(probeBoth("setTimeout", "Function.prototype.toString"), page) }, { ...expected });
+  });
+
   test("still sets a non-cyclic prototype", () => {
     const page = createPage("prevent-setTimeout.js", "x");
     const set = "const proto = Object.create(Function.prototype); Object.setPrototypeOf(setTimeout, proto) === setTimeout && Object.getPrototypeOf(setTimeout) === proto";
