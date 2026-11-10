@@ -3,46 +3,32 @@
  * the proxy or its target before changing the target's prototype.
  */
 export function createProxy(NativeProxy) {
-  const reflectApply = Reflect.apply;
-  const reflectGetPrototypeOf = Reflect.getPrototypeOf;
-  const reflectSetPrototypeOf = Reflect.setPrototypeOf;
+  const { getPrototypeOf, setPrototypeOf } = Reflect;
   const objectCreate = Object.create;
-  const TypeErrorCtor = TypeError;
-  const proxies = new WeakSet();
-  const { add, has } = WeakSet.prototype;
 
-  // Stop at other proxies created by this wrapper. Unrecognized proxies are
-  // traversed, which can invoke page-owned getPrototypeOf traps unlike native checks.
-  const isCyclic = (proxy, target, proto) => {
-    const stops = (p) => p === null || p === proxy || p === target || reflectApply(has, proxies, [p]);
+  // Proxies are walked like any other object, so a cycle spanning several scriptlet
+  // proxies is found. The tortoise ends walks over chains that are already cyclic.
+  const reaches = (proto, proxy, target) => {
     let slow = proto;
     let fast = proto;
-    // Classic "tortoise and hare" cycle check
-    while (!stops(fast)) {
-      fast = reflectGetPrototypeOf(fast);
-      if (stops(fast)) break;
-      fast = reflectGetPrototypeOf(fast);
-      slow = reflectGetPrototypeOf(slow);
-      if (slow === fast) return false;
+    for (let i = 1; fast !== null; i++) {
+      if (fast === proxy || fast === target) return true;
+      fast = getPrototypeOf(fast);
+      if (i % 2 === 0) {
+        slow = getPrototypeOf(slow);
+        if (slow === fast) return false;
+      }
     }
-    return fast === proxy || fast === target;
+    return false;
   };
 
   return function Proxy(target, handler) {
-    if (new.target === undefined) {
-      throw new TypeErrorCtor("Constructor Proxy requires 'new'");
-    }
-    let proxy;
-    // Inherit from the handler rather than copy it, so traps defined on a prototype still apply
-    if (handler instanceof Object && handler.setPrototypeOf === undefined) {
-      // Returning false makes Object.setPrototypeOf throw while Reflect.setPrototypeOf
-      // returns false. The error message differs from native cycle rejection.
-      const setPrototypeOf = (target, proto) =>
-        !(proto !== null && isCyclic(proxy, target, proto)) && reflectSetPrototypeOf(target, proto);
-      handler = objectCreate(handler, { setPrototypeOf: { value: setPrototypeOf } });
-    }
-    proxy = new NativeProxy(target, handler);
-    reflectApply(add, proxies, [proxy]);
+    // Inherit from the handler rather than copy it, so traps added to it later still apply.
+    const proxy = new NativeProxy(target, objectCreate(handler, {
+      // Returning false makes Object.setPrototypeOf throw and Reflect.setPrototypeOf
+      // return false, as both do for a native function.
+      setPrototypeOf: { value: (target, proto) => !reaches(proto, proxy, target) && setPrototypeOf(target, proto) },
+    }));
     return proxy;
   };
 }
