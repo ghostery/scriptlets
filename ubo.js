@@ -810,8 +810,9 @@ fn: 'trustedOverrideElementMethod',
 // Proxy shadows the global for every scriptlet in run(), see proxy.js.
 export function run(scriptletGlobals, calls) {
 const Proxy = (function createProxy(NativeProxy) {
-  const { getPrototypeOf, setPrototypeOf } = Reflect;
+  const { apply, getPrototypeOf, setPrototypeOf } = Reflect;
   const objectCreate = Object.create;
+  const hasOwnProperty = Object.prototype.hasOwnProperty;
 
   // Proxies are walked like any other object, so a cycle spanning several scriptlet
   // proxies is found. The tortoise ends walks over chains that are already cyclic.
@@ -830,11 +831,20 @@ const Proxy = (function createProxy(NativeProxy) {
   };
 
   return function Proxy(target, handler) {
-    // Inherit from the handler rather than copy it, so traps added to it later still apply.
+    // Compose with the handler's own setPrototypeOf trap, if any: read it once, as an own
+    // property only, so page code cannot inject one through Object.prototype. It runs after
+    // the cycle check below, so it only ever sees non-cyclic prototypes.
+    const trap = apply(hasOwnProperty, handler, ['setPrototypeOf']) ? handler.setPrototypeOf : undefined;
+
+    // Inherit from the handler rather than copy it, so other traps added to it later still apply.
+    // A setPrototypeOf trap added to the handler after construction stays shadowed by the composed one.
     const proxy = new NativeProxy(target, objectCreate(handler, {
-      // Returning false makes Object.setPrototypeOf throw and Reflect.setPrototypeOf
-      // return false, as both do for a native function.
-      setPrototypeOf: { value: (target, proto) => !reaches(proto, proxy, target) && setPrototypeOf(target, proto) },
+      setPrototypeOf: { value(target, proto) {
+        // Returning false makes Object.setPrototypeOf throw and Reflect.setPrototypeOf
+        // return false, as both do for a native function.
+        if (reaches(proto, proxy, target)) return false;
+        return trap === undefined ? setPrototypeOf(target, proto) : apply(trap, this, [target, proto]);
+      } },
     }));
     return proxy;
   };
