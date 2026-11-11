@@ -2,6 +2,7 @@ import { test, suite } from "node:test";
 import assert from "node:assert";
 import vm from "node:vm";
 import scriptlets, { run } from "./index.js";
+import { createProxy } from "./proxy.js";
 
 const runSource = run.toString();
 
@@ -136,5 +137,39 @@ suite("proxied functions", () => {
     const page = createPage("prevent-setTimeout.js", "x");
     const set = "const proto = Object.create(Function.prototype); Object.setPrototypeOf(setTimeout, proto) === setTimeout && Object.getPrototypeOf(setTimeout) === proto";
     assert(vm.runInContext(set, page));
+  });
+});
+
+suite("createProxy", () => {
+  test("preserves a handler's own setPrototypeOf trap", () => {
+    const Proxy = createProxy(globalThis.Proxy);
+    const target = function fn() {};
+    const calls = [];
+    const proxy = new Proxy(target, {
+      setPrototypeOf(t, proto) {
+        calls.push(proto);
+        return Reflect.setPrototypeOf(t, proto);
+      },
+    });
+
+    // Non-cyclic: the handler's trap runs and its result is honored.
+    const proto = Object.create(Function.prototype);
+    assert.strictEqual(Reflect.setPrototypeOf(proxy, proto), true);
+    assert.deepStrictEqual(calls, [proto]);
+    assert.strictEqual(Object.getPrototypeOf(target), proto);
+
+    // A falsish result from the handler's trap is honored, too.
+    const rejecting = new Proxy(target, {
+      setPrototypeOf() {
+        calls.push("reject");
+        return false;
+      },
+    });
+    assert.strictEqual(Reflect.setPrototypeOf(rejecting, Object.create(Function.prototype)), false);
+
+    // Cyclic: rejected before the handler's trap runs, like a native function.
+    assert.throws(() => Object.setPrototypeOf(proxy, Object.create(proxy)), TypeError);
+    assert.strictEqual(Reflect.setPrototypeOf(proxy, Object.create(proxy)), false);
+    assert.deepStrictEqual(calls, [proto, "reject"]);
   });
 });
