@@ -1,34 +1,43 @@
 /**
- * Returns a Proxy constructor wrapper that rejects prototype chains reaching
- * the proxy or its target before changing the target's prototype.
+ * Returns a Proxy constructor for scriptlets. Their handlers do not define
+ * setPrototypeOf; the page-provided prototype chains are untrusted.
  */
 export function createProxy(NativeProxy) {
-  const { getPrototypeOf, setPrototypeOf } = Reflect;
-  const objectCreate = Object.create;
+  const reflectGetPrototypeOf = Reflect.getPrototypeOf;
+  const reflectSetPrototypeOf = Reflect.setPrototypeOf;
 
-  // Proxies are walked like any other object, so a cycle spanning several scriptlet
-  // proxies is found. The tortoise ends walks over chains that are already cyclic.
-  const reaches = (proto, proxy, target) => {
+  // Walk through other scriptlet proxies to catch cycles spanning several hooks.
+  // This can invoke page-owned getPrototypeOf traps, unlike native cycle checks.
+  const isCyclic = (proxy, target, proto) => {
+    const stops = (p) => p === null || p === proxy || p === target;
     let slow = proto;
     let fast = proto;
-    for (let i = 1; fast !== null; i++) {
-      if (fast === proxy || fast === target) return true;
-      fast = getPrototypeOf(fast);
-      if (i % 2 === 0) {
-        slow = getPrototypeOf(slow);
-        if (slow === fast) return false;
-      }
+    // Classic "tortoise and hare" cycle check
+    while (!stops(fast)) {
+      fast = reflectGetPrototypeOf(fast);
+      if (stops(fast)) break;
+      fast = reflectGetPrototypeOf(fast);
+      slow = reflectGetPrototypeOf(slow);
+      if (slow === fast) return false;
     }
-    return false;
+    return fast === proxy || fast === target;
   };
 
   return function Proxy(target, handler) {
-    // Inherit from the handler rather than copy it, so traps added to it later still apply.
-    const proxy = new NativeProxy(target, objectCreate(handler, {
-      // Returning false makes Object.setPrototypeOf throw and Reflect.setPrototypeOf
-      // return false, as both do for a native function.
-      setPrototypeOf: { value: (target, proto) => !reaches(proto, proxy, target) && setPrototypeOf(target, proto) },
-    }));
+    // Copy only the scriptlet's own traps; never inherit traps from the page.
+    const proxy = new NativeProxy(target, {
+      __proto__: null,
+      ...handler,
+      setPrototypeOf(target, proto) {
+        // Do not inspect the target: it may itself be a page-owned proxy.
+        if (isCyclic(proxy, target, proto)) {
+          // Object.setPrototypeOf throws; Reflect.setPrototypeOf returns false.
+          // The engine's error text still differs from native cycle rejection.
+          return false;
+        }
+        return reflectSetPrototypeOf(target, proto);
+      },
+    });
     return proxy;
   };
 }

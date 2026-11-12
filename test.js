@@ -137,4 +137,62 @@ suite("proxied functions", () => {
     const set = "const proto = Object.create(Function.prototype); Object.setPrototypeOf(setTimeout, proto) === setTimeout && Object.getPrototypeOf(setTimeout) === proto";
     assert(vm.runInContext(set, page));
   });
+
+  test("can change prototypes when the page supplied a proxy target", () => {
+    const page = vm.createContext({ EventTarget: class {}, Request: class {} });
+    vm.runInContext(`
+      self = globalThis;
+      nativeSetTimeout = function setTimeout() {};
+      pageSetTimeout = setTimeout = new Proxy(nativeSetTimeout, {
+        getPrototypeOf() { throw new Error("page target trap ran"); },
+      });
+    `, page);
+    const calls = [[scriptlets["prevent-setTimeout.js"].fn, "x"]];
+    vm.runInContext(`(${runSource})(...${JSON.stringify([{}, calls])});`, page);
+    assert(vm.runInContext("setTimeout !== pageSetTimeout", page));
+    assert(vm.runInContext(`
+      const proto = Object.create(Function.prototype);
+      Object.setPrototypeOf(setTimeout, proto) === setTimeout &&
+        Object.getPrototypeOf(nativeSetTimeout) === proto;
+    `, page));
+    assert.deepStrictEqual({ ...vm.runInContext(probe("setTimeout"), page) }, { ...native });
+  });
+
+  for (const timing of ["before", "after"]) {
+    test(`ignores page-defined traps added ${timing} scriptlet injection`, () => {
+      const page = vm.createContext({ EventTarget: class {}, Request: class {} });
+      vm.runInContext(`
+        self = globalThis;
+        nativeSetTimeout = setTimeout = function setTimeout(callback) { callback(); return 42; };
+      `, page);
+      const pollute = `
+        for (const trap of ["get", "getPrototypeOf", "setPrototypeOf", "apply"]) {
+          Object.defineProperty(Object.prototype, trap, {
+            __proto__: null,
+            value() { throw new Error("page trap ran: " + trap); },
+          });
+        }
+      `;
+      if (timing === "before") vm.runInContext(pollute, page);
+      const calls = [[scriptlets["prevent-setTimeout.js"].fn, "blockedProbe"]];
+      vm.runInContext(`(${runSource})(...${JSON.stringify([{}, calls])});`, page);
+      if (timing === "after") vm.runInContext(pollute, page);
+      assert(vm.runInContext("setTimeout !== nativeSetTimeout", page));
+      assert.deepStrictEqual({ ...vm.runInContext(probe("setTimeout"), page) }, { ...native });
+      const result = vm.runInContext(`
+        const original = Object.getPrototypeOf(setTimeout);
+        Object.setPrototypeOf(setTimeout, Object.create(Function.prototype.toString));
+        const cycle = Reflect.setPrototypeOf(Function.prototype.toString, Object.create(setTimeout));
+        Object.setPrototypeOf(setTimeout, original);
+        let blocked = false, allowed = false;
+        const blockedResult = setTimeout(function blockedProbe() { blocked = true; });
+        const allowedResult = setTimeout(function allowedProbe() { allowed = true; });
+        ({ cycle, name: setTimeout.name, blocked, allowed, blockedResult, allowedResult });
+      `, page);
+      assert.deepStrictEqual({ ...result }, {
+        cycle: false, name: "setTimeout", blocked: false, allowed: true,
+        blockedResult: 42, allowedResult: 42,
+      });
+    });
+  }
 });
