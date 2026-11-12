@@ -172,4 +172,53 @@ suite("createProxy", () => {
     assert.strictEqual(Reflect.setPrototypeOf(proxy, Object.create(proxy)), false);
     assert.deepStrictEqual(calls, [proto, "reject"]);
   });
+
+  test("calls the handler's trap with the handler as this, like a native Proxy", () => {
+    const Proxy = createProxy(globalThis.Proxy);
+    let self;
+    const handler = {
+      setPrototypeOf() {
+        self = this;
+        return true;
+      },
+    };
+    Reflect.setPrototypeOf(new Proxy(function fn() {}, handler), {});
+    assert.strictEqual(self, handler);
+  });
+
+  test("treats a null trap as absent, like a native Proxy", () => {
+    const Proxy = createProxy(globalThis.Proxy);
+    const target = function fn() {};
+    const proto = Object.create(Function.prototype);
+    assert.strictEqual(Reflect.setPrototypeOf(new Proxy(target, { setPrototypeOf: null }), proto), true);
+    assert.strictEqual(Object.getPrototypeOf(target), proto);
+  });
+
+  test("applies a trap added to the handler after construction, like a native Proxy", () => {
+    const Proxy = createProxy(globalThis.Proxy);
+    const target = function fn() {};
+    const handler = {};
+    const proxy = new Proxy(target, handler);
+    handler.setPrototypeOf = () => false;
+    assert.strictEqual(Reflect.setPrototypeOf(proxy, Object.create(Function.prototype)), false);
+    assert.strictEqual(Object.getPrototypeOf(target), Function.prototype);
+
+    // The cycle check still comes first.
+    handler.setPrototypeOf = () => true;
+    assert.strictEqual(Reflect.setPrototypeOf(proxy, Object.create(proxy)), false);
+  });
+
+  test("ignores a trap injected through Object.prototype", () => {
+    const Proxy = createProxy(globalThis.Proxy);
+    const target = function fn() {};
+    const proxy = new Proxy(target, {});
+    const proto = Object.create(Function.prototype);
+    Object.prototype.setPrototypeOf = () => false;
+    try {
+      assert.strictEqual(Reflect.setPrototypeOf(proxy, proto), true);
+    } finally {
+      delete Object.prototype.setPrototypeOf;
+    }
+    assert.strictEqual(Object.getPrototypeOf(target), proto);
+  });
 });

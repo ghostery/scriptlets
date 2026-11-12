@@ -24,19 +24,17 @@ export function createProxy(NativeProxy) {
   };
 
   return function Proxy(target, handler) {
-    // Compose with the handler's own setPrototypeOf trap, if any: read it once, as an own
-    // property only, so page code cannot inject one through Object.prototype. It runs after
-    // the cycle check below, so it only ever sees non-cyclic prototypes.
-    const trap = apply(hasOwnProperty, handler, ['setPrototypeOf']) ? handler.setPrototypeOf : undefined;
-
-    // Inherit from the handler rather than copy it, so other traps added to it later still apply.
-    // A setPrototypeOf trap added to the handler after construction stays shadowed by the composed one.
+    // Inherit from the handler rather than copy it, so traps added to it later still apply.
     const proxy = new NativeProxy(target, objectCreate(handler, {
-      setPrototypeOf: { value(target, proto) {
+      setPrototypeOf: { value: (target, proto) => {
         // Returning false makes Object.setPrototypeOf throw and Reflect.setPrototypeOf
         // return false, as both do for a native function.
         if (reaches(proto, proxy, target)) return false;
-        return trap === undefined ? setPrototypeOf(target, proto) : apply(trap, this, [target, proto]);
+
+        // The handler's trap only ever sees non-cyclic prototypes. Own property only,
+        // so page code cannot inject a trap through Object.prototype.
+        const trap = apply(hasOwnProperty, handler, ['setPrototypeOf']) ? handler.setPrototypeOf : undefined;
+        return trap == null ? setPrototypeOf(target, proto) : apply(trap, handler, [target, proto]);
       } },
     }));
     return proxy;
