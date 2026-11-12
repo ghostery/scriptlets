@@ -173,17 +173,19 @@ suite("createProxy", () => {
     assert.deepStrictEqual(calls, [proto, "reject"]);
   });
 
-  test("calls the handler's trap with the handler as this, like a native Proxy", () => {
+  test("shares this between the handler's traps, like a native Proxy", () => {
     const Proxy = createProxy(globalThis.Proxy);
-    let self;
-    const handler = {
-      setPrototypeOf() {
-        self = this;
-        return true;
+    const proxy = new Proxy(function fn() {}, {
+      apply() {
+        this.locked = true;
       },
-    };
-    Reflect.setPrototypeOf(new Proxy(function fn() {}, handler), {});
-    assert.strictEqual(self, handler);
+      setPrototypeOf(t, proto) {
+        return this.locked ? false : Reflect.setPrototypeOf(t, proto);
+      },
+    });
+    assert.strictEqual(Reflect.setPrototypeOf(proxy, Object.create(Function.prototype)), true);
+    proxy();
+    assert.strictEqual(Reflect.setPrototypeOf(proxy, Object.create(Function.prototype)), false);
   });
 
   test("treats a null trap as absent, like a native Proxy", () => {

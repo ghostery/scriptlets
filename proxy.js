@@ -26,7 +26,7 @@ export function createProxy(NativeProxy) {
   return function Proxy(target, handler) {
     // Inherit from the handler rather than copy it, so traps added to it later still apply.
     const proxy = new NativeProxy(target, objectCreate(handler, {
-      setPrototypeOf: { value: (target, proto) => {
+      setPrototypeOf: { value(target, proto) {
         // Returning false makes Object.setPrototypeOf throw and Reflect.setPrototypeOf
         // return false, as both do for a native function.
         if (reaches(proto, proxy, target)) return false;
@@ -34,7 +34,9 @@ export function createProxy(NativeProxy) {
         // The handler's trap only ever sees non-cyclic prototypes. Own property only,
         // so page code cannot inject a trap through Object.prototype.
         const trap = apply(hasOwnProperty, handler, ['setPrototypeOf']) ? handler.setPrototypeOf : undefined;
-        return trap == null ? setPrototypeOf(target, proto) : apply(trap, handler, [target, proto]);
+
+        // Same `this` as the handler's other traps get, so state they share through it lines up.
+        return trap == null ? setPrototypeOf(target, proto) : apply(trap, this, [target, proto]);
       } },
     }));
     return proxy;
